@@ -45,22 +45,28 @@ use osvvm.ScoreboardPkg_slv.all;
 
 use work.SpiTbPkg.all;
 
-entity Spi is
+entity SpiDevice is
     generic(
-        MODEL_ID_NAME       : string := "";
-        DEFAULT_SCLK_PERIOD : time   := SPI_SCLK_PERIOD_1M
+        MODEL_ID_NAME       : string        := "";
+        DEFAULT_SCLK_PERIOD : time          := SPI_SCLK_PERIOD_1M;
+        DEVICE_TYPE         : SpiDeviceType := SPI_CONTROLLER;
+        SPI_MODE            : SpiModeType   := 0
     );
     port(
-        TransRec : inout SpiRecType;
-        SCLK     : out   std_logic;
-        SS       : out   std_logic;     -- slave select (low active)
-        MOSI     : out   std_logic;
-        MISO     : in    std_logic
+        TransRec : inout   SpiRecType;
+        SCLK     : inout   std_logic;
+        CSEL     : inout   std_logic;
+        PICO     : inout   std_logic;
+        POCI     : inout   std_logic
     );
-end entity Spi;
+end entity SpiDevice;
 
-architecture blocking of Spi is
+architecture blocking of SpiDevice is
 
+    ------------------------------------------------------------------------------------------------
+    -- Types
+    ------------------------------------------------------------------------------------------------
+    type T_EDGE is (RISE, FALL);
     ------------------------------------------------------------------------------------------------
     -- Constants
     ------------------------------------------------------------------------------------------------
@@ -79,18 +85,20 @@ architecture blocking of Spi is
     signal TransmitFifo         : osvvm.ScoreboardPkg_slv.ScoreboardIDType;
     signal ReceiveFifo          : osvvm.ScoreboardPkg_slv.ScoreboardIDType;
     signal SpiClk               : std_logic            := '0';
-    signal TransmitRequestCount : integer              := 0;
-    signal TransmitDoneCount    : integer              := 0;
-    signal ReceiveCount         : integer              := 0;
-    signal OptCPOL              : natural range 0 to 1 := 0;
-    signal OptCPHA              : natural range 0 to 1 := 0;
+    signal TransmitRequestCount : integer              :=  0;
+    signal TransmitDoneCount    : integer              :=  0;
+    signal ReceiveCount         : integer              :=  0;
+    signal OptCPOL              : natural range 0 to 1 :=  0;
+    signal OptCPHA              : natural range 0 to 1 :=  0;
     signal SCLK_int             : std_logic            := '0';
+    signal OutOn                : T_EDGE;
+    signal InOn                 : T_EDGE;
 
 begin
 
     ------------------------------------------------------------------------------------------------
     -- SPI clock
-    --   Period = TransRec.Baud 
+    --   Period = TransRec.Baud
     ------------------------------------------------------------------------------------------------
     SpiClk <= not SpiClk after OptSclkPeriod / 2;
 
@@ -102,8 +110,12 @@ begin
     begin
         ID           := NewID(MODEL_INSTANCE_NAME);
         ModelID      <= ID;
-        TransmitFifo <= NewID("TransmitFifo", ID, ReportMode => DISABLED, Search => PRIVATE_NAME);
-        ReceiveFifo  <= NewID("ReceiveFifo", ID, ReportMode => DISABLED, Search => PRIVATE_NAME);
+        TransmitFifo <= NewID("TransmitFifo", ID,
+                              ReportMode => DISABLED,
+                              Search     => PRIVATE_NAME);
+        ReceiveFifo  <= NewID("ReceiveFifo", ID,
+                              ReportMode => DISABLED,
+                              Search => PRIVATE_NAME);
         wait;
     end process Initialize;
 
@@ -123,10 +135,15 @@ begin
         wait for 0 ns;                  -- Let ModelID get set
 
         -- Initialize
-        OptSclkPeriod      <= CheckSclkPeriod(ModelID, DEFAULT_SCLK_PERIOD, FALSE);
-        OptCPOL            <= 0;
-        OptCPHA            <= 0;
-        TransRec.BurstFifo <= NewID("BurstFifo", ModelID, Search => PRIVATE_NAME);
+        OptSclkPeriod      <= CheckSclkPeriod(ModelID,
+                                              DEFAULT_SCLK_PERIOD,
+                                              FALSE);
+        OptCPOL            <= 0 when SPI_MODE = 0 or SPI_MODE = 1 else 1;
+        OptCPHA            <= 0 when SPI_MODE = 0 or SPI_MODE = 2 else 1;
+        OutOn              <= RISE when SPI_MODE = 1 or SPI_MODE = 2 else FALL;
+        InOn               <= RISE when SPI_MODE = 0 or SPI_MODE = 3 else FALL;
+        TransRec.BurstFifo <= NewID("BurstFifo", ModelID,
+                                    Search => PRIVATE_NAME);
 
         TransactionDispatcherLoop : loop
             WaitForTransaction(
@@ -171,7 +188,7 @@ begin
 
                 when GET_BURST =>
                     Log(ModelID, "GET_BURST", DEBUG);
-                    -- 
+                    --
                     TransRec.BoolFromModel <= TRUE;
                     if Empty(ReceiveFifo) then
                         -- Wait for data
@@ -229,88 +246,97 @@ begin
     end process TransactionDispatcher;
 
     ------------------------------------------------------------------------------------------------
-    -- SPI Transmit Functionality 
+    -- SPI Transmit Functionality
     --   Wait for Transaction
     --   Serially transmit data from the record
     ------------------------------------------------------------------------------------------------
-    SpiTransmitHandler : process
+    SpiTransactionHandler : process
         variable TxLast      : std_logic;
         variable TxData      : std_logic_vector(7 downto 0);
         variable RxData      : std_logic_vector(7 downto 0);
-        variable NewTransfer : boolean := true;
         variable FifoData    : std_logic_vector(8 downto 0);
+        variable RxBitCnt    : integer := 0;
+
     begin
-        -- Initialize
-        MOSI     <= '0';
-        SCLK_int <= '0';
-        SS       <= '1';
+        -- DEVICE_TYPE CONTROLLER Init
+        if DEVICE_TYPE = SPI_CONTROLLER_TYPE then
+            MOSI     <= '0';
+            SCLK_int <= '0'; --this needs conditional based on mode type
+            SS       <= '1';
+            wait for 0 ns;
+        end if;
 
-        wait for 0 ns;
+        ControllerLoop : loop
+            -- Bail if not a SPI controller
+            exit when DEVICE_TYPE /= SPI_CONTROLLER_TYPE;
 
-        TransmitLoop : loop
-
-            -- Find Transaction
+            -- Wait for transmit request
             if Empty(TransmitFifo) then
+                CSEL <= '1';
+                SCLK <= '1' when SPI_MODE = 0 or SPI_MODE = 1 else '0';
                 WaitForToggle(TransmitRequestCount);
             else
                 wait for 0 ns;          -- allow TransmitRequestCount to settle if both happen at same time.
             end if;
 
+            -- Get data off TransmitFifo
             FifoData := Pop(TransmitFifo);
             TxLast   := FifoData(8);
             TxData   := FifoData(7 downto 0);
 
             Log(ModelID,
-                "SPI TxData: " & to_string(TxData) & ", Last: " & to_string(TxLast) & ", TransmitRequestCount # " & to_string(TransmitRequestCount),
+                "SPI TxData: " & to_string(TxData) &
+                ", Last: " & to_string(TxLast) &
+                ", TransmitRequestCount # " & to_string(TransmitRequestCount),
                 DEBUG);
 
-            if NewTransfer then
-                SS <= '0';
-            end if;
+            CSEL <= '0';
 
-            for BitIdx in 7 downto 0 loop -- transmit bytes MSB-first
-                if OptCPHA = 0 then
-                    MOSI <= TxData(BitIdx);
-                end if;
-                --
-                wait for OptSclkPeriod / 2;
-                SCLK_int <= '1';
-                if OptCPHA = 1 then
-                    MOSI <= TxData(BitIdx);
-                end if;
-                if OptCPHA = 0 then
-                    RxData(BitIdx) := MISO;
-                end if;
-                --
-                wait for OptSclkPeriod / 2;
+            -- Transmit each bit in byte
+            for BitIdx in 7 downto 0 loop
                 SCLK_int <= '0';
-                if OptCPHA = 1 then
-                    RxData(BitIdx) := MISO;
-                end if;
+                PICO <= TxData(BitIdx) when OutOn = FALL;
+                --
+                wait for OptSclkPeriod / 2;
+                --
+                SCLK_int <= '1';
+                PICO <= TxData(BitIdx) when OutOn = RISE;
             end loop;
 
-            Log(ModelID,
-                "SPI RxData: " & to_string(RxData) & ", ReceiveCount # " & to_string(ReceiveCount),
-                DEBUG);
+            Increment(TransmitDoneCount);
 
+            if TxLast then
+                wait for OptSclkPeriod / 2;
+            end if;
+
+
+        end loop ControllerLoop;
+
+        PeripheralLoop : loop
+            -- Bail if not a SPI peripheral
+            exit when DEVICE_TYPE /= SPI_PERIPHERAL_TYPE;
+            wait for 0 ns;
+
+            if InOn = RISE and rising_edge(SCLK) then
+                RxData(BitIdx) := PICO;
+                RxBitCnt := RxBitCnt + 1;
+            elsif InOn = FALL and falling_edge(SCLK) then
+                RxData(BitIdx) := PICO;
+                RxBitCnt := RxBitCnt + 1;
+            end if;
             push(ReceiveFifo, RxData);
             increment(ReceiveCount);
 
-            -- Log at interface at DEBUG level
+            Log(ModelID,
+            "SPI RxData: " & to_string(RxData) & ", ReceiveCount # " & to_string(ReceiveCount),
+            DEBUG);
+
+         -- Log at interface at DEBUG level
             Log(ModelID,
                 "Received:" & " Data = " & to_hxstring(RxData), DEBUG
-               );
-
-            if TxLast then
-                NewTransfer := true;
-                wait for OptSclkPeriod / 2;
-                SS          <= '1';
-            end if;
-
-            -- Signal completion
-            Increment(TransmitDoneCount);
-        end loop TransmitLoop;
-    end process SpiTransmitHandler;
+            );
+        end loop;
+    end process SpiTransactionHandler;
 
     ------------------------------------------------------------------------------------------------
     -- SCLK output

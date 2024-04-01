@@ -41,18 +41,20 @@ use work.SpiTbPkg.all;
 
 package SpiComponentPkg is
 
-    component Spi is
+    component SpiDevice is
         generic(
-            MODEL_ID_NAME       : string := "";
-            DEFAULT_SCLK_PERIOD : time   := SPI_SCLK_PERIOD_1M
+            MODEL_ID_NAME       : string        := "";
+            DEFAULT_SCLK_PERIOD : time          := SPI_SCLK_PERIOD_1M;
+            DEVICE_TYPE         : SpiDeviceType := SPI_CONTROLLER;
+            SPI_MODE            : SpiModeType   := 0
         );
         port(
-            TransRec : InOut SpiRecType;
-            SCLK     : out   std_logic;
-            SS       : out   std_logic;     -- slave select (low active)
-            MOSI     : out   std_logic;
-            MISO     : in    std_logic
+            TransRec : inout   SpiRecType;
+            SCLK     : inout   std_logic;
+            CSEL       : inout   std_logic;     -- slave select (low active)
+            PICO     : inout   std_logic;
+            POCI     : inout   std_logic
         );
-    end component Spi;
+    end component SpiDevice;
 
 end package SpiComponentPkg;
