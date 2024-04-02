@@ -1,4 +1,4 @@
---
+-- Maybe add txlog and rx log procedures to this package.
 --  File Name:         SpiTbPkg.vhd
 --  Design Unit Name:  SpiTbPkg
 --  OSVVM Release:     TODO
@@ -63,16 +63,7 @@ package SpiTbPkg is
     );
 
     ------------------------------------------------------------
-    -- SPI Device Type
-    ------------------------------------------------------------
-
-    type SpiDeviceType is (
-        SPI_CONTROLLER,
-        SPI_PERIPHERAL
-    );
-
-    ------------------------------------------------------------
-    -- SPI Mode Type
+    -- SPI Mode Types
     ------------------------------------------------------------
 
     subtype SpiModeType is integer range 0 to 3;
@@ -82,8 +73,7 @@ package SpiTbPkg is
     ------------------------------------------------------------
     type SpiOptionType is (
         SET_SCLK_PERIOD,
-        SET_CPOL,
-        SET_CPHA
+        SET_SPI_MODE
     );
 
     ------------------------------------------------------------
@@ -93,7 +83,7 @@ package SpiTbPkg is
     constant SPI_SCLK_PERIOD_10M : time := 100 ns;
 
     ------------------------------------------------------------
-    -- SetSclkPeriod 
+    -- SetSclkPeriod
     ------------------------------------------------------------
     procedure SetSclkPeriod(
         signal   TransactionRec : inout StreamRecType;
@@ -125,13 +115,16 @@ package SpiTbPkg is
         constant StatusMsgOn : in boolean := FALSE
     ) return time;
 
+    pure function GetCPOL          (SpiMode : in SpiModeType) return natural;
+    pure function GetCPHA          (SpiMode : in SpiModeType) return natural;
+    pure function IsOutOnFirstEdge (SpiMode : in SpiModetype) return boolean;
 
 end SpiTbPkg;
 
 package body SpiTbPkg is
 
     ------------------------------------------------------------
-    -- SetSclkPeriod: 
+    -- SetSclkPeriod:
     ------------------------------------------------------------
     procedure SetSclkPeriod(
         signal   TransactionRec : inout StreamRecType;
@@ -177,5 +170,37 @@ package body SpiTbPkg is
         end if;
         return result;
     end function CheckSclkPeriod;
+
+    function GetCPOL(SpiMode : in SpiModeType) return natural is
+        variable retval : natural;
+    begin
+        if SpiMode = 0 or SpiMode = 1 then
+            retval := 0;
+        else
+            retval := 1;
+        end if;
+        return retval;
+    end function GetCPOL;
+
+    pure function GetCPHA(SpiMode : in SpiModeType) return natural is
+        variable retval : natural;
+    begin
+        if SpiMode = 0 or SpiMode = 2 then
+            retval := 0;
+        else
+            retval := 1;
+        end if;
+        return retval;
+    end function GetCPHA;
+
+    pure function IsOutOnFirstEdge (SpiMode : in SpiModetype) return boolean is
+        variable retval : boolean;
+    begin
+        if SpiMode = 1 or SpiMode = 3 then
+            retval := TRUE;
+        else 
+            retval := FALSE;
+        end if;
+    end function IsOutOnFirstEdge;
 
 end SpiTbPkg;

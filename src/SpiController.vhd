@@ -1,5 +1,5 @@
 --
---  File Name:         Spi.vhd
+--  File Name:         SpiController.vhd
 --  Design Unit Name:  SPI
 --  OSVVM Release:     TODO
 --
@@ -8,29 +8,7 @@
 --     Guy Eschemann   guy@noasic.com
 --
 --  Description:
---      SPI Master Verification Component
---
---  Revision History:
---    Date      Version    Description
---    03/2024   2024.03    Updated SafeResize to use ModelID
---    06/2022   2022.06    Initial version
---
---  This file is (not yet) part of OSVVM.
---
---  Copyright (c) 2022 Guy Escheman
---
---  Licensed under the Apache License, Version 2.0 (the "License");
---  you may not use this file except in compliance with the License.
---  You may obtain a copy of the License at
---
---      https://www.apache.org/licenses/LICENSE-2.0
---
---  Unless required by applicable law or agreed to in writing, software
---  distributed under the License is distributed on an "AS IS" BASIS,
---  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
---  See the License for the specific language governing permissions and
---  limitations under the License.
---
+--      SPI Controller Verification Component
 
 library ieee;
 use ieee.std_logic_1164.all;
@@ -45,28 +23,22 @@ use osvvm.ScoreboardPkg_slv.all;
 
 use work.SpiTbPkg.all;
 
-entity SpiDevice is
+entity SpiController is
     generic(
-        MODEL_ID_NAME       : string        := "";
-        DEFAULT_SCLK_PERIOD : time          := SPI_SCLK_PERIOD_1M;
-        DEVICE_TYPE         : SpiDeviceType := SPI_CONTROLLER;
-        SPI_MODE            : SpiModeType   := 0
+        MODEL_ID_NAME       : string := "";
+        DEFAULT_SCLK_PERIOD : time   := SPI_SCLK_PERIOD_1M
     );
     port(
         TransRec : inout   SpiRecType;
-        SCLK     : inout   std_logic;
-        CSEL     : inout   std_logic;
-        PICO     : inout   std_logic;
-        POCI     : inout   std_logic
+        SCLK     : out     std_logic;
+        CSEL     : out     std_logic;
+        PICO     : out     std_logic;
+        POCI     : in      std_logic
     );
-end entity SpiDevice;
+end entity SpiController;
 
-architecture blocking of SpiDevice is
+architecture blocking of SpiController is
 
-    ----------------------------------------------------------------------------
-    -- Types
-    ----------------------------------------------------------------------------
-    type T_EDGE is (RISE, FALL);
     ----------------------------------------------------------------------------
     -- Constants
     ----------------------------------------------------------------------------
@@ -79,27 +51,25 @@ architecture blocking of SpiDevice is
     ----------------------------------------------------------------------------
     -- Signals
     ----------------------------------------------------------------------------
-
-    signal OptSclkPeriod        : time                 := DEFAULT_SCLK_PERIOD;
+    -- Model Signals
     signal ModelID              : AlertLogIDType;
     signal TransmitFifo         : osvvm.ScoreboardPkg_slv.ScoreboardIDType;
     signal ReceiveFifo          : osvvm.ScoreboardPkg_slv.ScoreboardIDType;
-    signal SpiClk               : std_logic            := '0';
     signal TransmitRequestCount : integer              :=  0;
     signal TransmitDoneCount    : integer              :=  0;
     signal ReceiveCount         : integer              :=  0;
-    signal OptCPOL              : natural range 0 to 1 :=  0;
-    signal OptCPHA              : natural range 0 to 1 :=  0;
+    -- SPI Mode Signals
+    signal OptSpiMode           : SpiModeType          :=  0;
+    signal CPOL                 : natural range 0 to 1 :=  0;
+    signal CPHA                 : natural range 0 to 1 :=  0;
+    signal OutOnFirstEdge       : boolean              :=  FALSE;
+    -- SPI Clock Signals
+    signal OptSclkPeriod        : time                 :=  DEFAULT_SCLK_PERIOD;
+    signal SpiClk               : std_logic            := '0';
     signal SCLK_int             : std_logic            := '0';
-    signal OutOn                : T_EDGE;
-    signal InOn                 : T_EDGE;
 
 begin
-
-    ----------------------------------------------------------------------------
-    -- SPI clock
-    --   Period = TransRec.Baud
-    ----------------------------------------------------------------------------
+    -- Start SPI clock
     SpiClk <= not SpiClk after OptSclkPeriod / 2;
 
     ----------------------------------------------------------------------------
@@ -132,16 +102,16 @@ begin
         variable Last          : std_logic;
         variable FifoWordCount : integer;
     begin
-        wait for 0 ns;                  -- Let ModelID get set
+        -- Wait for ModelID to get set
+        wait for 0 ns;
 
-        -- Initialize
+        -- Initialize functional values
         OptSclkPeriod      <= CheckSclkPeriod(ModelID,
                                               DEFAULT_SCLK_PERIOD,
                                               FALSE);
-        OptCPOL            <= 0 when SPI_MODE = 0 or SPI_MODE = 1 else 1;
-        OptCPHA            <= 0 when SPI_MODE = 0 or SPI_MODE = 2 else 1;
-        OutOn              <= RISE when SPI_MODE = 1 or SPI_MODE = 2 else FALL;
-        InOn               <= RISE when SPI_MODE = 0 or SPI_MODE = 3 else FALL;
+        CPOL               <= GetCPOL          (OptSpiMode);
+        CPHA               <= GetCPHA          (OptSpiMode);
+        OutOnFirstEdge     <= IsOutOnFirstEdge (OptSpiMode);
         TransRec.BurstFifo <= NewID("BurstFifo", ModelID,
                                     Search => PRIVATE_NAME);
 
@@ -246,9 +216,7 @@ begin
     end process TransactionDispatcher;
 
     ----------------------------------------------------------------------------
-    -- SPI Transmit Functionality
-    --   Wait for Transaction
-    --   Serially transmit data from the record
+    -- SPI Controller Transmit and Receive Functionality
     ----------------------------------------------------------------------------
     SpiTransactionHandler : process
         variable TxLast      : std_logic;
@@ -258,25 +226,22 @@ begin
         variable RxBitCnt    : integer := 0;
 
     begin
-        -- DEVICE_TYPE CONTROLLER Init
-        if DEVICE_TYPE = SPI_CONTROLLER_TYPE then
-            MOSI     <= '0';
-            SCLK_int <= '0'; --this needs conditional based on mode type
-            SS       <= '1';
-            wait for 0 ns;
-        end if;
+        -- Set SPI component I/O states
+        SCLK_int <= '1' when CPOL = 1 else '0';
+        CSEL     <= '1';
+        PICO     <= '0';
+        wait for 0 ns;
 
         ControllerLoop : loop
-            -- Bail if not a SPI controller
-            exit when DEVICE_TYPE /= SPI_CONTROLLER_TYPE;
-
-            -- Wait for transmit request
+            -- Wait for transmit request with lines in idle state
             if Empty(TransmitFifo) then
-                CSEL <= '1';
-                SCLK <= '1' when SPI_MODE = 0 or SPI_MODE = 1 else '0';
+                PICO     <= '0';
+                CSEL     <= '1';
+                SCLK_int <= '1' when CPOL = 1 else '0';
                 WaitForToggle(TransmitRequestCount);
             else
-                wait for 0 ns;          -- allow TransmitRequestCount to settle if both happen at same time.
+                -- Allow TransmitRequestCount to settle
+                wait for 0 ns;
             end if;
 
             -- Get data off TransmitFifo
@@ -290,17 +255,16 @@ begin
                 ", TransmitRequestCount # " & to_string(TransmitRequestCount),
                 DEBUG);
 
+            -- Transmit each bit in byte;
             CSEL <= '0';
-
-            -- Transmit each bit in byte
             for BitIdx in 7 downto 0 loop
                 SCLK_int <= not SCLK_int;
-                PICO     <= TxData(BitIdx) when OutOn = FALL;
+                PICO     <= TxData(BitIdx) when OutOnFirstEdge;
                 --
                 wait for OptSclkPeriod / 2;
                 --
                 SCLK_int <= not SCLK_int;
-                PICO     <= TxData(BitIdx) when OutOn = RISE;
+                PICO     <= TxData(BitIdx) when not OutOnFirstEdge;
                 --
                 wait for OptSclkPeriod / 2;
             end loop;
@@ -308,37 +272,12 @@ begin
             Increment(TransmitDoneCount);
 
         end loop ControllerLoop;
-
-        PeripheralLoop : loop
-            -- Bail if not a SPI peripheral
-            exit when DEVICE_TYPE /= SPI_PERIPHERAL_TYPE;
-            wait for 0 ns;
-
-            if InOn = RISE and rising_edge(SCLK) then
-                RxData(BitIdx) := PICO;
-                RxBitCnt := RxBitCnt + 1;
-            elsif InOn = FALL and falling_edge(SCLK) then
-                RxData(BitIdx) := PICO;
-                RxBitCnt := RxBitCnt + 1;
-            end if;
-            push(ReceiveFifo, RxData);
-            increment(ReceiveCount);
-
-            Log(ModelID,
-            "SPI RxData: " & to_string(RxData) & ", ReceiveCount # " & to_string(ReceiveCount),
-            DEBUG);
-
-         -- Log at interface at DEBUG level
-            Log(ModelID,
-                "Received:" & " Data = " & to_hxstring(RxData), DEBUG
-            );
-        end loop;
     end process SpiTransactionHandler;
 
     ----------------------------------------------------------------------------
     -- SCLK output
     ----------------------------------------------------------------------------
 
-    SCLK <= SCLK_int when OptCPOL = 0 else not SCLK_int;
+    SCLK <= SCLK_int;
 
 end architecture blocking;
