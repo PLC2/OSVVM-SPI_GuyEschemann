@@ -72,6 +72,7 @@ architecture blocking of SpiController is
 
 begin
     -- Start clock
+    -- MOVE THIS w/ CHECK INTO INIT PROCESS
     SpiClk <= not SpiClk after OptSclkPeriod / 2;
 
     ----------------------------------------------------------------------------
@@ -107,15 +108,6 @@ begin
     begin
         -- Wait for ModelID to get set
         wait for 0 ns;
-
-        -- Initialize functional values
-        -- FIX STUPID CHECK FUNCTION
-        OptSclkPeriod      <= CheckSclkPeriod(ModelID,
-                                              DEFAULT_SCLK_PERIOD,
-                                              FALSE);
-        CPOL               <= GetCPOL          (OptSpiMode);
-        CPHA               <= GetCPHA          (OptSpiMode);
-        OutOnFirstEdge     <= IsFirstEdgeOut   (OptSpiMode);
 
         TransactionDispatcherLoop : loop
             WaitForTransaction(
@@ -160,17 +152,22 @@ begin
                 when SET_MODEL_OPTIONS =>
                     case TransRec.Options is
                         when SpiOptionType'pos(SET_SCLK_PERIOD) =>
-                            -- FIX STUPID CHECK FUNCTION
-                            OptSclkPeriod <= CheckSclkPeriod(ModelID,
-                                                             TransRec.TimeToModel,
-                                                             TransRec.BoolToModel);
+                            if ValidSclkPeriod(Transrec.TimeToModel) then
+                                OptSclkPeriod <= Transrec.TimeToModel;
+                                log(AlertLogID, "SCLK frequency set to " &
+                                    to_string(period, 1 ns), INFO, StatusMsgOn);
+                            else
+                                Alert(AlertLogID, "Unsupported period = " &
+                                      to_string(period), ERROR);
+                            end if;
                         when SpiOptionType'pos(SET_SPI_MODE) =>
-                            -- FIX SETTERS
+                            OptSpiMode <= TransRec.IntToModel;
+                            SetSpiParams(OptSpiMode, CPOL, CPHA, OutOnFirstEdge);
+                            -- Log
                             Log(ModelID,
                                 "Set SPI mode = " &
                                 to_string(TransRec.IntToModel),
                                 INFO);
-                            OptCPOL <= TransRec.IntToModel;
                         when others =>
                             Alert(ModelID, OPT_ERR_MSG &
                                   to_string(SpiOptionType'val(TransRec.Options)),
@@ -201,6 +198,7 @@ begin
 
     begin
         -- Set SPI component I/O states
+        -- MAKE SET IDLE STATES PROCEDURE?
         SCLK     <= '1' when CPOL = 1 else '0';
         CSEL     <= '1';
         PICO     <= '0';
@@ -219,6 +217,7 @@ begin
             end if;
 
             -- Get data off TransmitFifo
+            -- GET RID OF TXLAST
             FifoData := Pop(TransmitFifo);
             TxLast   := FifoData(8);
             TxData   := FifoData(7 downto 0);
@@ -241,7 +240,7 @@ begin
                 SCLK     <= SpiClk;
                 PICO     <= TxData(BitIdx) when not OutOnFirstEdge;
                 --
-                wait for OptSclkPeriod / 2;
+                wait for SpiClk'event;
             end loop;
 
             Increment(TransmitDoneCount);

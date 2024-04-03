@@ -98,15 +98,17 @@ package SpiTbPkg is
         constant Period         : time
     );
 
-    ------------------------------------------------------------
-    -- CheckSclkPeriod:  Parameter Check
-    ------------------------------------------------------------
-    impure function CheckSclkPeriod(
-        constant AlertLogID  : in AlertLogIDType;
-        constant period      : in time;
-        constant StatusMsgOn : in boolean := FALSE
-    ) return time;
+    procedure SetSpiParams(
+        signal OptSpiMode     : SpiModeType;
+        signal CPOL           : SpiCPOLType;
+        signal CPHA           : SpiCPHAType;
+        signal OutOnFirstEdge : boolean
+    );
 
+    -- Opt Parameter Checkers
+    pure function ValidSclkPeriod (period : in time) return boolean
+
+    -- SPI Parameters
     pure function GetCPOL          (SpiMode : in SpiModeType) return natural;
     pure function GetCPHA          (SpiMode : in SpiModeType) return natural;
     pure function IsFirstEdgeOut   (SpiMode : in SpiModetype) return boolean;
@@ -134,34 +136,29 @@ package body SpiTbPkg is
         SetModelOptions(TransactionRec, SpiOptionType'pos(SET_CPOL), value);
     end procedure;
 
-    procedure SetCPHA(
-        signal   TransactionRec : inout StreamRecType;
-        constant value          : natural range 0 to 1
+    procedure SetSpiParams(
+        signal OptSpiMode     : SpiModeType;
+        signal CPOL           : SpiCPOLType;
+        signal CPHA           : SpiCPHAType;
+        signal OutOnFirstEdge : boolean
     ) is
     begin
-        SetModelOptions(TransactionRec, SpiOptionType'pos(SET_CPHA), value);
-    end procedure;
+        CPOL <= GetCPOL(OptSpiMode);
+        CPHA <= GetCPHA(OptSpiMode);
+        OutOnFirstEdge <= IsFirstEdgeOut(OptSpiMode);
+    end procedure SetSpiParams;
 
     ------------------------------------------------------------
     -- CheckSclkPeriod:  Parameter Check
     ------------------------------------------------------------
-    impure function CheckSclkPeriod(
-        constant AlertLogID  : in AlertLogIDType;
-        constant period      : in time;
-        constant StatusMsgOn : in boolean := FALSE
-    ) return time is
-        variable result : time;
+    pure function ValidSclkPeriod(period : in time) return boolean is
     begin
-        if period <= 0 sec then
-            Alert(AlertLogID,
-                  "Unsupported period = " & to_string(period) & ". Using SPI_SCLK_PERIOD_1M", ERROR);
-            result := SPI_SCLK_PERIOD_1M;
+        if period > 0 sec then
+            return TRUE;
         else
-            log(AlertLogID, "SCLK frequency set to " & to_string(period, 1 ns), INFO, StatusMsgOn);
-            result := period;
+            return FALSE;
         end if;
-        return result;
-    end function CheckSclkPeriod;
+    end function ValidSclkPeriod;
 
     function GetCPOL(SpiMode : in SpiModeType) return SpiCPOLType is
         variable retval : SpiCPOLType;
