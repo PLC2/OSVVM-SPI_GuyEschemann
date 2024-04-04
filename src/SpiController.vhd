@@ -11,22 +11,22 @@
 --      SPI Controller Verification Component
 
 library ieee;
-use ieee.std_logic_1164.all;
-use ieee.numeric_std.all;
+    use ieee.std_logic_1164.all;
+    use ieee.numeric_std.all;
 
 library OSVVM;
-context OSVVM.OsvvmContext;
+    context OSVVM.OsvvmContext;
 
 library osvvm_common;
-context osvvm_common.OsvvmCommonContext;
-use osvvm.ScoreboardPkg_slv.all;
+    context osvvm_common.OsvvmCommonContext;
+    use osvvm.ScoreboardPkg_slv.all;
 
 use work.SpiTbPkg.all;
 
 entity SpiController is
     generic(
-        MODEL_ID_NAME       : string := "";
-        DEFAULT_SCLK_PERIOD : time   := SPI_SCLK_PERIOD_1M
+        MODEL_ID_NAME : string     := "";
+        SCLK_PERIOD   : SpiClkType := SPI_SCLK_PERIOD_1M
     );
     port(
         TransRec : inout   SpiRecType;
@@ -65,18 +65,15 @@ architecture blocking of SpiController is
     signal OptSpiMode           : SpiModeType          :=  0;
     signal CPOL                 : SpiCPOLType          :=  0;
     signal CPHA                 : SpiCPHAType          :=  0;
-    signal OutOnFirstEdge       : boolean              :=  FALSE;
+    signal OutOnOdd             : boolean              :=  FALSE;
     -- SPI Clock Signals
-    signal OptSclkPeriod        : time                 :=  DEFAULT_SCLK_PERIOD;
+    signal OptSclkPeriod        : SpiClkType           :=  SCLK_PERIOD;
     signal SpiClk               : std_logic            := '0';
 
 begin
-    -- Start clock
-    -- MOVE THIS w/ CHECK INTO INIT PROCESS
-    SpiClk <= not SpiClk after OptSclkPeriod / 2;
 
     ----------------------------------------------------------------------------
-    --  Initialize alerts and FIFOs
+    --  Initialize SPI Controller Entity + Clock
     ----------------------------------------------------------------------------
     Initialize : process
         variable ID : AlertLogIDType;
@@ -91,6 +88,7 @@ begin
                                     Search => PRIVATE_NAME);
         TransRec.BurstFifo <= NewID("BurstFifo", ID,
                                     Search => PRIVATE_NAME);
+        SpiClk <= not SpiClk after OptSclkPeriod / 2;
         wait;
     end process Initialize;
 
@@ -101,10 +99,8 @@ begin
     TransactionDispatcher : process
         alias Operation        : StreamOperationType is TransRec.Operation;
         variable WaitEdges     : integer;
-        variable PopValid      : boolean;
-        variable BytesToSend   : integer;
         variable TxData        : std_logic_vector(7 downto 0);
-        variable FifoWordCount : integer;
+
     begin
         -- Wait for ModelID to get set
         wait for 0 ns;
@@ -150,24 +146,23 @@ begin
                     TransRec.IntFromModel <= TransmitDoneCount;
 
                 when SET_MODEL_OPTIONS =>
+
                     case TransRec.Options is
                         when SpiOptionType'pos(SET_SCLK_PERIOD) =>
-                            if ValidSclkPeriod(Transrec.TimeToModel) then
-                                OptSclkPeriod <= Transrec.TimeToModel;
-                                log(AlertLogID, "SCLK frequency set to " &
-                                    to_string(period, 1 ns), INFO, StatusMsgOn);
-                            else
-                                Alert(AlertLogID, "Unsupported period = " &
-                                      to_string(period), ERROR);
-                            end if;
+                            OptSclkPeriod <= Transrec.TimeToModel;
+                            --Log
+                            Log(AlertLogID, "SCLK frequency set to " &
+                                to_string(period, 1 ns), INFO, StatusMsgOn);
+
                         when SpiOptionType'pos(SET_SPI_MODE) =>
                             OptSpiMode <= TransRec.IntToModel;
-                            SetSpiParams(OptSpiMode, CPOL, CPHA, OutOnFirstEdge);
+                            SetSpiParams(OptSpiMode, CPOL, CPHA, OutOnOdd);
                             -- Log
                             Log(ModelID,
                                 "Set SPI mode = " &
                                 to_string(TransRec.IntToModel),
                                 INFO);
+
                         when others =>
                             Alert(ModelID, OPT_ERR_MSG &
                                   to_string(SpiOptionType'val(TransRec.Options)),
@@ -181,8 +176,8 @@ begin
                 when others =>
                     Alert(ModelID, "Unimplemented Transaction: " &
                           to_string(Operation), FAILURE);
-
             end case;
+
         end loop TransactionDispatcherLoop;
     end process TransactionDispatcher;
 
@@ -190,26 +185,17 @@ begin
     -- SPI Controller Transmit and Receive Functionality
     ----------------------------------------------------------------------------
     SpiTransactionHandler : process
-        variable TxLast      : std_logic;
         variable TxData      : std_logic_vector(7 downto 0);
-        variable RxData      : std_logic_vector(7 downto 0);
-        variable FifoData    : std_logic_vector(8 downto 0);
-        variable RxBitCnt    : integer := 0;
+        variable RxData      : std_logic_vector(7 downto 0); -- not used yet
+        variable RxBitCnt    : integer := 0;                 -- not used yet
 
     begin
-        -- Set SPI component I/O states
-        -- MAKE SET IDLE STATES PROCEDURE?
-        SCLK     <= '1' when CPOL = 1 else '0';
-        CSEL     <= '1';
-        PICO     <= '0';
         wait for 0 ns;
 
         ControllerLoop : loop
             -- Wait for transmit request with lines in idle state
             if Empty(TransmitFifo) then
-                PICO     <= '0';
-                CSEL     <= '1';
-                SCLK     <= '1' when CPOL = 1 else '0';
+                GoIdle(CSEL, SCLK, PICO, POCI, CPOL);
                 WaitForToggle(TransmitRequestCount);
             else
                 -- Allow TransmitRequestCount to settle
@@ -217,15 +203,12 @@ begin
             end if;
 
             -- Get data off TransmitFifo
-            -- GET RID OF TXLAST
-            FifoData := Pop(TransmitFifo);
-            TxLast   := FifoData(8);
-            TxData   := FifoData(7 downto 0);
+            TxData := Pop(TransmitFifo);
 
             Log(ModelID,
                 "SPI TxData: " & to_string(TxData) &
-                ", Last: " & to_string(TxLast) &
-                ", TransmitRequestCount # " & to_string(TransmitRequestCount),
+                ", TransmitRequestCount # " &
+                to_string(TransmitRequestCount),
                 DEBUG);
 
             -- Transmit each bit in byte;
@@ -233,12 +216,12 @@ begin
             wait until SpiClk = SCLK and SpiClk'event;
             for BitIdx in 7 downto 0 loop
                 SCLK     <= SpiClk;
-                PICO     <= TxData(BitIdx) when OutOnFirstEdge;
+                PICO     <= TxData(BitIdx) when OutOnOdd;
                 --
                 wait for SpiClk'event;
                 --
                 SCLK     <= SpiClk;
-                PICO     <= TxData(BitIdx) when not OutOnFirstEdge;
+                PICO     <= TxData(BitIdx) when not OutOnOdd;
                 --
                 wait for SpiClk'event;
             end loop;

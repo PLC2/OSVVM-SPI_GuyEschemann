@@ -1,36 +1,3 @@
--- Maybe add txlog and rx log procedures to this package.
---  File Name:         SpiTbPkg.vhd
---  Design Unit Name:  SpiTbPkg
---  OSVVM Release:     TODO
---
---  Maintainer:        Guy Eschemann  email: guy@noasic.com
---  Contributor(s):
---     Guy Eschemann   guy@noasic.com
---
---  Description:
---      Constant and Transaction Support for OSVVM SPI master model
---
---  Revision History:
---    Date      Version    Description
---    06/2022   2022.06    Initial version
---
---  This file is part of OSVVM.
---
---  Copyright (c) 2022 Guy Escheman
---
---  Licensed under the Apache License, Version 2.0 (the "License");
---  you may not use this file except in compliance with the License.
---  You may obtain a copy of the License at
---
---      https://www.apache.org/licenses/LICENSE-2.0
---
---  Unless required by applicable law or agreed to in writing, software
---  distributed under the License is distributed on an "AS IS" BASIS,
---  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
---  See the License for the specific language governing permissions and
---  limitations under the License.
---
-
 library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
@@ -39,21 +6,21 @@ use ieee.numeric_std_unsigned.all;
 use std.textio.all;
 
 library OSVVM;
-context OSVVM.OsvvmContext;
+    context OSVVM.OsvvmContext;
 
 library osvvm_common;
-context osvvm_common.OsvvmCommonContext;
+    context osvvm_common.OsvvmCommonContext;
 
 package SpiTbPkg is
 
     ------------------------------------------------------------
-    -- SPI Data and Error Injection Settings for Transaction Support
+    -- SPI Data Type (Wordsize) & Error Generation Vector Type
     ------------------------------------------------------------
     subtype SpiTb_DataType      is std_logic_vector(7 downto 0);
-    subtype SpiTb_ErrorModeType is std_logic_vector(0 downto 0); -- currently not used
+    subtype SpiTb_ErrorModeType is std_logic_vector(0 downto 0);
 
     ------------------------------------------------------------
-    -- SPI Transaction Record derived from StreamRecType
+    -- SPI Transaction Record Type
     ------------------------------------------------------------
     subtype SpiRecType is StreamRecType(
         DataToModel    (SpiTb_DataType'range),
@@ -61,6 +28,10 @@ package SpiTbPkg is
         DataFromModel  (SpiTb_DataType'range),
         ParamFromModel (SpiTb_ErrorModeType'range)
     );
+    ------------------------------------------------------------
+    -- SPI Clock Type: Max
+    ------------------------------------------------------------
+    subtype SpiClkType is time range 40 ns to 1 ms;
 
     ------------------------------------------------------------
     -- SPI Mode Types
@@ -81,21 +52,24 @@ package SpiTbPkg is
     ------------------------------------------------------------
     -- Constants for SPI clock frequency
     ------------------------------------------------------------
-    constant SPI_SCLK_PERIOD_1M  : time := 1 us;
-    constant SPI_SCLK_PERIOD_10M : time := 100 ns;
+    constant SPI_SCLK_PERIOD_1K  : SpiClkType := 1   ms;
+    constant SPI_SCLK_PERIOD_1M  : SpiClkType := 1   us;
+    constant SPI_SCLK_PERIOD_10M : SpiClkType := 100 ns;
+    constant SPI_SCLK_PERIOD_25M : SpiClkType := 40  ns;
 
     ------------------------------------------------------------
     -- Logging and Error Message String Constants
     ------------------------------------------------------------
     constant BST_ERR_MSG : string := "BurstFifo Empty during burst transfer";
     constant OPT_ERR_MSG : string := "SetOptions, Unimplemented Option: ";
-    constant DRV_ERR_MSG : string := "Multiple Drivers on Transaction Record."
+    constant DRV_ERR_MSG : string := "Multiple Drivers on Transaction Record.";
+
     ------------------------------------------------------------
-    -- SetSclkPeriod
+    -- Setters
     ------------------------------------------------------------
     procedure SetSclkPeriod(
         signal   TransactionRec : inout StreamRecType;
-        constant Period         : time
+        constant Period         : SpiClkType
     );
 
     procedure SetSpiParams(
@@ -104,38 +78,52 @@ package SpiTbPkg is
         signal CPHA           : SpiCPHAType;
         signal OutOnFirstEdge : boolean
     );
-
-    -- Opt Parameter Checkers
-    pure function ValidSclkPeriod (period : in time) return boolean
-
-    -- SPI Parameters
+    ------------------------------------------------------------
+    -- SPI Parameter Helpers
+    ------------------------------------------------------------
     pure function GetCPOL          (SpiMode : in SpiModeType) return natural;
     pure function GetCPHA          (SpiMode : in SpiModeType) return natural;
-    pure function IsFirstEdgeOut   (SpiMode : in SpiModetype) return boolean;
+    pure function OddEdgeOut   (SpiMode : in SpiModetype) return boolean;
+
+    ------------------------------------------------------------
+    -- Convenience Procedures
+    ------------------------------------------------------------
+    procedure GoIdle(
+        signal CSEL : std_logic;
+        signal SCKL : std_logic;
+        signal PICO : std_logic;
+        signal POCI : std_logic;
+        signal CPOL : SpiCPOLType
+        );
 
 end SpiTbPkg;
 
 package body SpiTbPkg is
 
     ------------------------------------------------------------
-    -- SetSclkPeriod:
+    -- SetSclkPeriod: Sets SCLK and internal clock period
     ------------------------------------------------------------
     procedure SetSclkPeriod(
         signal   TransactionRec : inout StreamRecType;
-        constant Period         : time
+        constant Period         : SpiClkType
     ) is
     begin
         SetModelOptions(TransactionRec, SpiOptionType'pos(SET_SCLK_PERIOD), Period);
     end procedure SetSclkPeriod;
-
-    procedure SetCPOL(
+    ------------------------------------------------------------
+    -- SetSpiMode: Sets device SPI operation mode (0 - 3)
+    ------------------------------------------------------------
+    procedure SetSpiMode(
         signal   TransactionRec : inout StreamRecType;
-        constant value          : natural range 0 to 1
+        constant SpiMode        : SpiModeType
     ) is
     begin
-        SetModelOptions(TransactionRec, SpiOptionType'pos(SET_CPOL), value);
+        SetModelOptions(TransactionRec, SpiOptionType'pos(SET_SPI_MODE), value);
     end procedure;
 
+    ------------------------------------------------------------
+    -- SetSpiParams: Helper function for SetSpiMode
+    ------------------------------------------------------------
     procedure SetSpiParams(
         signal OptSpiMode     : SpiModeType;
         signal CPOL           : SpiCPOLType;
@@ -145,21 +133,29 @@ package body SpiTbPkg is
     begin
         CPOL <= GetCPOL(OptSpiMode);
         CPHA <= GetCPHA(OptSpiMode);
-        OutOnFirstEdge <= IsFirstEdgeOut(OptSpiMode);
+        OutOnFirstEdge <= OddEdgeOut(OptSpiMode);
     end procedure SetSpiParams;
 
     ------------------------------------------------------------
-    -- CheckSclkPeriod:  Parameter Check
+    -- GoIdle:
     ------------------------------------------------------------
-    pure function ValidSclkPeriod(period : in time) return boolean is
+    procedure GoIdle(
+        signal CSEL : std_logic;
+        signal SCKL : std_logic;
+        signal PICO : std_logic;
+        signal POCI : std_logic;
+        signal CPOL : SpiCPOLType
+        ) is
     begin
-        if period > 0 sec then
-            return TRUE;
-        else
-            return FALSE;
-        end if;
-    end function ValidSclkPeriod;
+        CSEL <= '1';
+        PICO <= '0';
+        POCI <= '0';
+        SCLK <= '0' when CPOL = 0 else '1';
+    end procedure GoIdle;
 
+    ------------------------------------------------------------
+    -- GetCPOL: Helper function for SetSpiMode
+    ------------------------------------------------------------
     function GetCPOL(SpiMode : in SpiModeType) return SpiCPOLType is
         variable retval : SpiCPOLType;
     begin
@@ -171,6 +167,9 @@ package body SpiTbPkg is
         return retval;
     end function GetCPOL;
 
+    ------------------------------------------------------------
+    -- GetCPHA: Helper function for SetSpiMode
+    ------------------------------------------------------------
     pure function GetCPHA(SpiMode : in SpiModeType) return SpiCPHAType is
         variable retval : SpiCPHAType;
     begin
@@ -182,7 +181,10 @@ package body SpiTbPkg is
         return retval;
     end function GetCPHA;
 
-    pure function IsFirstEdgeOut (SpiMode : in SpiModetype) return boolean is
+    ------------------------------------------------------------
+    -- OddEdgeOut: Returns true if data out on odd edges
+    ------------------------------------------------------------
+    pure function OddEdgeOut (SpiMode : in SpiModetype) return boolean is
         variable retval : boolean;
     begin
         if SpiMode = 1 or SpiMode = 3 then
@@ -190,6 +192,6 @@ package body SpiTbPkg is
         else
             retval := FALSE;
         end if;
-    end function IsFirstEdgeOut;
+    end function OddEdgeOut;
 
 end SpiTbPkg;
