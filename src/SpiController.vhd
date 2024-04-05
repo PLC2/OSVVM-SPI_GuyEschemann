@@ -13,6 +13,8 @@
 library ieee;
     use ieee.std_logic_1164.all;
     use ieee.numeric_std.all;
+    use std.textio.all;
+
 
 library OSVVM;
     context OSVVM.OsvvmContext;
@@ -48,8 +50,9 @@ architecture blocking of SpiController is
     constant MODEL_INSTANCE_NAME : string := IfElse(MODEL_ID_NAME'length > 0,
                                                     MODEL_ID_NAME,
                                                     to_lower(
-                                                    PathTail(Spi'PATH_NAME)
-                                                    ));
+                                                    PathTail(
+                                                    SpiController'PATH_NAME
+                                                    )));
 
     ----------------------------------------------------------------------------
     -- Signals
@@ -71,9 +74,10 @@ architecture blocking of SpiController is
     signal SpiClk               : std_logic            := '0';
 
 begin
+    SpiClk <= not SpiClk after OptSclkPeriod / 2;
 
     ----------------------------------------------------------------------------
-    --  Initialize SPI Controller Entity + Clock
+    --  Initialize SPI Controller Entity
     ----------------------------------------------------------------------------
     Initialize : process
         variable ID : AlertLogIDType;
@@ -88,7 +92,6 @@ begin
                                     Search => PRIVATE_NAME);
         TransRec.BurstFifo <= NewID("BurstFifo", ID,
                                     Search => PRIVATE_NAME);
-        SpiClk <= not SpiClk after OptSclkPeriod / 2;
         wait;
     end process Initialize;
 
@@ -115,7 +118,7 @@ begin
             case Operation is
                 when SEND =>
                     Log(ModelID, "SEND", INFO);
-                    TxData := SafeResize(ModelID, TransRec.DataToModel,
+                    TxData := SafeResize(TransRec.DataToModel,
                                          TxData'length);
                     Push(TransmitFifo, TxData);
                     Increment(TransmitRequestCount);
@@ -135,7 +138,7 @@ begin
                     WaitEdges := (TransRec.IntToModel * 3);
 
                     while WaitEdges /= 0 loop
-                        wait for SpiClk'event;
+                        wait until SpiClk'event;
                         WaitEdges := WaitEdges - 1;
                     end loop;
 
@@ -151,8 +154,9 @@ begin
                         when SpiOptionType'pos(SET_SCLK_PERIOD) =>
                             OptSclkPeriod <= Transrec.TimeToModel;
                             --Log
-                            Log(AlertLogID, "SCLK frequency set to " &
-                                to_string(period, 1 ns), INFO, StatusMsgOn);
+                            Log(ModelID, "SCLK frequency set to " &
+                                to_string(OptSclkPeriod, 1 ns),
+                                INFO);
 
                         when SpiOptionType'pos(SET_SPI_MODE) =>
                             OptSpiMode <= TransRec.IntToModel;
@@ -195,7 +199,7 @@ begin
         ControllerLoop : loop
             -- Wait for transmit request with lines in idle state
             if Empty(TransmitFifo) then
-                GoIdle(CSEL, SCLK, PICO, CPOL);
+                GoIdle(CPOL, CSEL, SCLK, PICO);
                 WaitForToggle(TransmitRequestCount);
             else
                 -- Allow TransmitRequestCount to settle
@@ -213,17 +217,17 @@ begin
 
             -- Transmit each bit in byte;
             CSEL <= '0';
-            wait until SpiClk = SCLK and SpiClk'event;
+            wait until SCLK = SpiClk and SpiClk'event;
             for BitIdx in 7 downto 0 loop
                 SCLK     <= SpiClk;
                 PICO     <= TxData(BitIdx) when OutOnOdd;
                 --
-                wait for SpiClk'event;
+                wait until SpiClk'event;
                 --
                 SCLK     <= SpiClk;
                 PICO     <= TxData(BitIdx) when not OutOnOdd;
                 --
-                wait for SpiClk'event;
+                wait until SpiClk'event;
             end loop;
 
             Increment(TransmitDoneCount);

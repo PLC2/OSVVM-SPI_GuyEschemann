@@ -1,15 +1,15 @@
 library ieee;
-use ieee.std_logic_1164.all;
-use ieee.numeric_std.all;
-use ieee.numeric_std_unsigned.all;
-
-use std.textio.all;
+    use ieee.std_logic_1164.all;
+    use ieee.numeric_std.all;
+    use ieee.numeric_std_unsigned.all;
 
 library OSVVM;
     context OSVVM.OsvvmContext;
 
 library osvvm_common;
     context osvvm_common.OsvvmCommonContext;
+    use osvvm.ScoreboardPkg_slv.all;
+
 
 package SpiTbPkg is
 
@@ -73,26 +73,26 @@ package SpiTbPkg is
     );
 
     procedure SetSpiParams(
-        signal OptSpiMode     : SpiModeType;
-        signal CPOL           : SpiCPOLType;
-        signal CPHA           : SpiCPHAType;
-        signal OutOnFirstEdge : boolean
+        signal OptSpiMode     : in  SpiModeType;
+        signal CPOL           : out SpiCPOLType;
+        signal CPHA           : out SpiCPHAType;
+        signal OutOnFirstEdge : out boolean
     );
     ------------------------------------------------------------
     -- SPI Parameter Helpers
     ------------------------------------------------------------
-    pure function GetCPOL          (SpiMode : in SpiModeType) return natural;
-    pure function GetCPHA          (SpiMode : in SpiModeType) return natural;
-    pure function OddEdgeOut   (SpiMode : in SpiModetype) return boolean;
+    pure function GetCPOL    (SpiMode : in SpiModeType) return SpiCPOLType;
+    pure function GetCPHA    (SpiMode : in SpiModeType) return SpiCPHAType;
+    pure function OddEdgeOut (SpiMode : in SpiModetype) return boolean;
 
     ------------------------------------------------------------
     -- Convenience Procedures
     ------------------------------------------------------------
     procedure GoIdle(
-        signal CSEL : std_logic;
-        signal SCKL : std_logic;
-        signal PICO : std_logic;
-        signal CPOL : SpiCPOLType
+        signal CPOL : in SpiCPOLType;
+        signal CSEL : out std_logic;
+        signal SCLK : out std_logic;
+        signal PICO : out std_logic
         );
 
 end SpiTbPkg;
@@ -107,7 +107,9 @@ package body SpiTbPkg is
         constant Period         : SpiClkType
     ) is
     begin
-        SetModelOptions(TransactionRec, SpiOptionType'pos(SET_SCLK_PERIOD), Period);
+        SetModelOptions(TransactionRec,
+                        SpiOptionType'pos(SET_SCLK_PERIOD),
+                        Period);
     end procedure SetSclkPeriod;
     ------------------------------------------------------------
     -- SetSpiMode: Sets device SPI operation mode (0 - 3)
@@ -117,21 +119,23 @@ package body SpiTbPkg is
         constant SpiMode        : SpiModeType
     ) is
     begin
-        SetModelOptions(TransactionRec, SpiOptionType'pos(SET_SPI_MODE), value);
+        SetModelOptions(TransactionRec,
+                        SpiOptionType'pos(SET_SPI_MODE),
+                        SpiMode);
     end procedure;
 
     ------------------------------------------------------------
     -- SetSpiParams: Helper function for SetSpiMode
     ------------------------------------------------------------
     procedure SetSpiParams(
-        signal OptSpiMode     : SpiModeType;
-        signal CPOL           : SpiCPOLType;
-        signal CPHA           : SpiCPHAType;
-        signal OutOnFirstEdge : boolean
+        signal OptSpiMode     : in  SpiModeType;
+        signal CPOL           : out SpiCPOLType;
+        signal CPHA           : out SpiCPHAType;
+        signal OutOnFirstEdge : out boolean
     ) is
     begin
-        CPOL <= GetCPOL(OptSpiMode);
-        CPHA <= GetCPHA(OptSpiMode);
+        CPOL           <= GetCPOL(OptSpiMode);
+        CPHA           <= GetCPHA(OptSpiMode);
         OutOnFirstEdge <= OddEdgeOut(OptSpiMode);
     end procedure SetSpiParams;
 
@@ -139,10 +143,10 @@ package body SpiTbPkg is
     -- GoIdle:
     ------------------------------------------------------------
     procedure GoIdle(
-        signal CSEL : std_logic;
-        signal SCKL : std_logic;
-        signal PICO : std_logic;
-        signal CPOL : SpiCPOLType
+        signal CPOL : in  SpiCPOLType;
+        signal CSEL : out std_logic;
+        signal SCLK : out std_logic;
+        signal PICO : out std_logic
         ) is
     begin
         CSEL <= '1';
