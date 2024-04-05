@@ -32,54 +32,50 @@
 --
 
 library ieee;
-use ieee.std_logic_1164.all;
-use ieee.numeric_std.all;
+    use ieee.std_logic_1164.all;
+    use ieee.numeric_std.all;
 
 use std.textio.all;
 
 library osvvm;
-context osvvm.OsvvmContext;
+    context osvvm.OsvvmContext;
 
 library osvvm_spi;
-context osvvm_spi.SpiContext;
+    context osvvm_spi.SpiContext;
 
 entity TbSpi is
 end TbSpi;
 
 architecture TestHarness of TbSpi is
+    -- Test Bench Constants
+    constant tperiod_Clk      : time := 10 ns;
+    constant tpd              : time :=  2 ns;
 
-    constant tperiod_Clk : time      := 10 ns;
-    constant tpd         : time      := 2 ns;
-    signal Clk           : std_logic := '0';
-    signal Reset         : std_logic;
+    -- Global Signals
+    signal Clk              : std_logic;
+    signal n_Reset          : std_logic;
 
-    -- SPI Interface
-    signal SerialData : std_logic;
+    -- Testbench Control Records
+    signal SpiControllerRec : SpiRecType;
+
+    -- SPI Controller Signals
+    signal SCLK : std_logic;
+    signal CSEL : std_logic;
+    signal PICO : std_logic;
+    signal POCI : std_logic;
 
     component TestCtrl
-        generic(
-            tperiod_Clk : time := 10 ns
-        );
         port(
-            SpiRec : InOut SpiRecType;
-            Clk    : In    std_logic;
-            Reset  : In    std_logic;
-            SCLK   : in    std_logic;
-            MOSI   : in    std_logic;
-            MISO   : out   std_logic
+            SpiControllerRec : inout SpiRecType;
+            Clk              : in    std_logic;
+            n_Reset          : in    std_logic
         );
     end component;
-
-    signal SpiRec : SpiRecType;
-    signal SCLK   : std_logic;
-    signal MOSI   : std_logic;
-    signal MISO   : std_logic;
-    signal SS     : std_logic;
 
 begin
 
     ------------------------------------------------------------
-    -- Create Clock 
+    -- Create Clock
     ------------------------------------------------------------
     Osvvm.TbUtilPkg.CreateClock(
         Clk    => Clk,
@@ -87,11 +83,11 @@ begin
     );
 
     ------------------------------------------------------------
-    -- Create Reset 
+    -- Create Reset
     ------------------------------------------------------------
     Osvvm.TbUtilPkg.CreateReset(
-        Reset       => Reset,
-        ResetActive => '1',
+        Reset       => n_Reset,
+        ResetActive => '0',
         Clk         => Clk,
         Period      => 7 * tperiod_Clk,
         tpd         => tpd
@@ -100,13 +96,13 @@ begin
     ------------------------------------------------------------
     -- SPI
     ------------------------------------------------------------
-    Spi_1 : Spi
+    Spi_1 : SpiController
         port map(
-            TransRec => SpiRec,
+            TransRec => SpiControllerRec,
             SCLK     => SCLK,
-            SS       => SS,
-            MOSI     => MOSI,
-            MISO     => MISO
+            CSEL     => CSEL,
+            PICO     => PICO,
+            POCI     => POCI
         );
 
     ------------------------------------------------------------
@@ -114,15 +110,12 @@ begin
     ------------------------------------------------------------
     TestCtrl_1 : TestCtrl
         generic map(
-            tperiod_Clk => tperiod_Clk
+            tperiod_Clk      => tperiod_Clk
         )
         port map(
-            SpiRec => SpiRec,
-            Clk    => Clk,
-            Reset  => Reset,
-            SCLK   => SCLK,
-            MOSI   => MOSI,
-            MISO   => MISO
+            SpiControllerRec => SpiControllerRec,
+            Clk              => Clk,
+            n_Reset          => n_Reset
         );
 
 end TestHarness;

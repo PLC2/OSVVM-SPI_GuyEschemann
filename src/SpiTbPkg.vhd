@@ -92,7 +92,6 @@ package SpiTbPkg is
         signal CSEL : std_logic;
         signal SCKL : std_logic;
         signal PICO : std_logic;
-        signal POCI : std_logic;
         signal CPOL : SpiCPOLType
         );
 
@@ -143,13 +142,11 @@ package body SpiTbPkg is
         signal CSEL : std_logic;
         signal SCKL : std_logic;
         signal PICO : std_logic;
-        signal POCI : std_logic;
         signal CPOL : SpiCPOLType
         ) is
     begin
         CSEL <= '1';
         PICO <= '0';
-        POCI <= '0';
         SCLK <= '0' when CPOL = 0 else '1';
     end procedure GoIdle;
 

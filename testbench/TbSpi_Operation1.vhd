@@ -39,22 +39,20 @@ architecture Operation1 of TestCtrl is
 begin
 
     ------------------------------------------------------------
-    -- ControlProc
-    --   Set up AlertLog and wait for end of test
+    -- Bench Environment Init
     ------------------------------------------------------------
     ControlProc : process
     begin
         -- Initialization of test
         SetAlertLogName("TbSpi_Operation1");
         SetLogEnable(PASSED, TRUE);     -- Enable PASSED logs
-        -- TODO UartScoreboard.SetAlertLogID("UART_SB1");
         TbID <= GetAlertLogID("TB");
 
-        -- Wait for testbench initialization 
+        -- Wait for testbench initialization
         wait for 0 ns;
         wait for 0 ns;
         TranscriptOpen(OSVVM_RESULTS_DIR & "TbSpi_Operation1.txt");
-        --    SetTranscriptMirror(TRUE) ; 
+        SetTranscriptMirror(TRUE) ;
 
         -- Wait for Design Reset
         wait until Reset = '0';
@@ -74,36 +72,26 @@ begin
     end process ControlProc;
 
     ------------------------------------------------------------
-    -- SpiProc
+    -- SpiControllerTest: Simple
     ------------------------------------------------------------
-    SpiProc : process
-        variable SpiProcID, SpiLogID    : AlertLogIDType;
-        variable SclkPeriod             : time;
-        variable StartTime, ElapsedTime : time;
+    SpiControllerTest : process
+        variable SpiProcID : AlertLogIDType;
+
     begin
-        GetAlertLogID(SpiRec, SpiProcID);
-        SetLogEnable(SpiProcID, INFO, TRUE);
+        -- Logging
+        GetAlertLogID(SpiControllerRec, SpiProcID);
+        SetLogEnable(SpiControllerRec, INFO, TRUE);
+        WaitForclock(SpiControllerRec, 2);
 
-        SpiLogID := GetAlertLogID("TB SpiProc");
-        SetLogEnable(SpiLogID, INFO, FALSE);
+        -- Send Some Words
+        WaitForClock(SpiControllerRec, 5);
+        Send(SpiControllerRec, X"50");
+        WaitForClock(SpiControllerRec, 5);
+        Send(SpiControllerRec, X"05");
+        WaitForClock(SpiControllerRec, 5);
 
-        --        SclkPeriod := SPI_SCLK_PERIOD_1M;
-        --        Log(SpiLogID, "Setting SCLK period to " & to_string(SclkPeriod, 1 ns), INFO);
-        --        SetSclkPeriod(SpiRec, SclkPeriod);
-        --        -- WaitForBarrier(SetParmBarrier);
-        --        WaitForClock(SpiRec, 1);
-        --
-        --        StartTime   := NOW;
-        --        WaitForClock(SpiRec, 1);
-        --        ElapsedTime := NOW - StartTime;
-        --        AffirmIf(SpiProcID, ElapsedTime = SclkPeriod, "1 clock = " & to_string(ElapsedTime, 1 ns));
-        --
-        --        Send(SpiRec, X"50");
-        --        -- Send(UartTxRec, X"51", UARTTB_PARITY_ERROR) ;
-
-        ------------------------------------------------------------
-        -- End of test.  Wait for outputs to propagate and signal TestDone
-        wait for 4 * SPI_SCLK_PERIOD_1M;
+        -- Set Done
+        TestDone <= '1';
         WaitForBarrier(TestDone);
         wait;
     end process SpiProc;

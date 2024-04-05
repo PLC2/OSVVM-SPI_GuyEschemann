@@ -195,7 +195,7 @@ begin
         ControllerLoop : loop
             -- Wait for transmit request with lines in idle state
             if Empty(TransmitFifo) then
-                GoIdle(CSEL, SCLK, PICO, POCI, CPOL);
+                GoIdle(CSEL, SCLK, PICO, CPOL);
                 WaitForToggle(TransmitRequestCount);
             else
                 -- Allow TransmitRequestCount to settle

@@ -32,29 +32,27 @@
 --
 
 library ieee;
-use ieee.std_logic_1164.all;
+    use ieee.std_logic_1164.all;
 
 library OSVVM;
-context OSVVM.OsvvmContext;
+    context OSVVM.OsvvmContext;
 
 use work.SpiTbPkg.all;
 
 package SpiComponentPkg is
 
-    component SpiDevice is
+    component SpiController is
         generic(
             MODEL_ID_NAME       : string        := "";
-            DEFAULT_SCLK_PERIOD : time          := SPI_SCLK_PERIOD_1M;
-            DEVICE_TYPE         : SpiDeviceType := SPI_CONTROLLER;
-            SPI_MODE            : SpiModeType   := 0
+            SCLK_PERIOD         : SpiClkType    := SPI_SCLK_PERIOD_1M;
         );
         port(
             TransRec : inout   SpiRecType;
-            SCLK     : inout   std_logic;
-            CSEL       : inout   std_logic;     -- slave select (low active)
-            PICO     : inout   std_logic;
-            POCI     : inout   std_logic
+            SCLK     : out     std_logic;
+            CSEL     : out     std_logic;
+            PICO     : out     std_logic;
+            POCI     : in      std_logic
         );
-    end component SpiDevice;
+    end component SpiController;
 
 end package SpiComponentPkg;

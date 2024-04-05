@@ -32,16 +32,16 @@
 --
 
 library ieee;
-use ieee.std_logic_1164.all;
-use ieee.numeric_std.all;
-use ieee.numeric_std_unsigned.all;
-use std.textio.all;
+    use ieee.std_logic_1164.all;
+    use ieee.numeric_std.all;
+    use ieee.numeric_std_unsigned.all;
+    use std.textio.all;
 
 library OSVVM;
-context OSVVM.OsvvmContext;
+    context OSVVM.OsvvmContext;
 
 library osvvm_spi;
-context osvvm_spi.SpiContext;
+    context osvvm_spi.SpiContext;
 
 use work.OsvvmTestCommonPkg.all;
 
@@ -51,12 +51,10 @@ entity TestCtrl is
     );
     port(
         -- Record Interface
-        SpiRec : inout SpiRecType;
-        Clk    : in    std_logic;
+        SpiControllerRec : inout SpiRecType;
         -- Global Signal Interface
-        Reset  : in    std_logic;
-        SCLK   : in    std_logic;
-        MOSI   : in    std_logic;
-        MISO   : out   std_logic
+        Clk              : in    std_logic;
+        n_Reset          : in    std_logic
+
     );
 end entity;

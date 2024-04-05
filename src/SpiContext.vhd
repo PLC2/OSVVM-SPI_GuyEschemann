@@ -33,10 +33,10 @@
 
 context SpiContext is
     library osvvm_common;
-    context osvvm_common.OsvvmCommonContext;
+        context osvvm_common.OsvvmCommonContext;
 
     library osvvm_spi;
-    use osvvm_spi.SpiTbPkg.all;
-    use osvvm_spi.SpiComponentPkg.all;
+        use osvvm_spi.SpiTbPkg.all;
+        use osvvm_spi.SpiComponentPkg.all;
 end context SpiContext;
 
