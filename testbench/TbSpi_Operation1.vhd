@@ -44,7 +44,7 @@ begin
     ControlProc : process
     begin
         -- Initialization of test
-        SetAlertLogName("TbSpi_Operation1");
+        SetTestName("TbSpi_Operation1");
         SetLogEnable(PASSED, TRUE);     -- Enable PASSED logs
         TbID <= GetAlertLogID("TB");
 
@@ -55,7 +55,7 @@ begin
         SetTranscriptMirror(TRUE) ;
 
         -- Wait for Design Reset
-        wait until Reset = '0';
+        wait until n_Reset = '1';
         ClearAlerts;
 
         -- Wait for test to finish
@@ -80,21 +80,21 @@ begin
     begin
         -- Logging
         GetAlertLogID(SpiControllerRec, SpiProcID);
-        SetLogEnable(SpiControllerRec, INFO, TRUE);
+        SetLogEnable(SpiProcID, INFO, TRUE);
         WaitForclock(SpiControllerRec, 2);
 
         -- Send Some Words
         WaitForClock(SpiControllerRec, 5);
-        Send(SpiControllerRec, X"50");
+        Send(SpiControllerRec, X"FF");
         WaitForClock(SpiControllerRec, 5);
         Send(SpiControllerRec, X"05");
         WaitForClock(SpiControllerRec, 5);
 
         -- Set Done
-        TestDone <= '1';
+        TestDone <= 1;
         WaitForBarrier(TestDone);
         wait;
-    end process SpiProc;
+    end process SpiControllerTest;
 
 end Operation1;
 

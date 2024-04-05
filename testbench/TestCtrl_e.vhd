@@ -46,9 +46,6 @@ library osvvm_spi;
 use work.OsvvmTestCommonPkg.all;
 
 entity TestCtrl is
-    generic(
-        tperiod_Clk : time := 10 ns
-    );
     port(
         -- Record Interface
         SpiControllerRec : inout SpiRecType;

@@ -192,10 +192,11 @@ begin
         variable TxData      : std_logic_vector(7 downto 0);
         variable RxData      : std_logic_vector(7 downto 0); -- not used yet
         variable RxBitCnt    : integer := 0;                 -- not used yet
+        variable IdleState   : std_logic;
 
     begin
         wait for 0 ns;
-
+        IdleState := '0' when CPOL = 0 else '1';
         ControllerLoop : loop
             -- Wait for transmit request with lines in idle state
             if Empty(TransmitFifo) then
@@ -216,19 +217,23 @@ begin
                 DEBUG);
 
             -- Transmit each bit in byte;
+            wait until SpiClk = IdleState and SpiClk'event;
             CSEL <= '0';
-            wait until SCLK = SpiClk and SpiClk'event;
+
             for BitIdx in 7 downto 0 loop
                 SCLK     <= SpiClk;
                 PICO     <= TxData(BitIdx) when OutOnOdd;
                 --
-                wait until SpiClk'event;
+                wait until SpiClk /= IdleState and SpiClk'event;
                 --
                 SCLK     <= SpiClk;
                 PICO     <= TxData(BitIdx) when not OutOnOdd;
                 --
-                wait until SpiClk'event;
+                wait until SpiClk = IdleState and SpiClk'event;
             end loop;
+
+            SCLK <= SpiClk;
+            wait until SpiClk /= IdleState and SpiClk'event;
 
             Increment(TransmitDoneCount);
 

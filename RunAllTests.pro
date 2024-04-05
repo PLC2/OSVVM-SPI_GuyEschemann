@@ -1,5 +1,5 @@
 TestSuite Spi
 
 library   osvvm_TbSpi
-
-include ./testbench
+include ./spi.pro
+include ./testbench/testbench.pro

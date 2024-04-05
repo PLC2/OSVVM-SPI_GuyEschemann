@@ -109,9 +109,6 @@ begin
     -- Stimulus generation and synchronization
     ------------------------------------------------------------
     TestCtrl_1 : TestCtrl
-        generic map(
-            tperiod_Clk      => tperiod_Clk
-        )
         port map(
             SpiControllerRec => SpiControllerRec,
             Clk              => Clk,
