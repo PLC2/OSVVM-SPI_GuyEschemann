@@ -82,10 +82,27 @@ begin
         SetLogEnable(SpiProcID, INFO, TRUE);
         WaitForclock(SpiControllerRec, 2);
 
-        -- Send Some Words
+        -- Send some words in SPI Mode = 0
         WaitForClock(SpiControllerRec, 5);
         Send(SpiControllerRec, X"AA");
         WaitForClock(SpiControllerRec, 5);
+
+        -- Set SPI Mode = 1 and send some words
+        SetSpiMode(SpiControllerRec, 1);
+        Send(SpiControllerRec, X"AA");
+        WaitForClock(SpiControllerRec, 5);
+
+        -- Set SPI Mode = 2 and send some words
+        SetSpiMode(SpiControllerRec, 2);
+        Send(SpiControllerRec, X"AA");
+        WaitForClock(SpiControllerRec, 5);
+
+         -- Set SPI Mode = 3 and send some words
+         SetSpiMode(SpiControllerRec, 3);
+         Send(SpiControllerRec, X"AA");
+         WaitForClock(SpiControllerRec, 5);
+
+
 
 
 

@@ -43,7 +43,8 @@ package SpiTbPkg is
     -- SPI Options
     ------------------------------------------------------------
     type SpiOptionType is (
-        SET_SCLK_PERIOD
+        SET_SCLK_PERIOD,
+        SET_SPI_MODE
     );
 
     ------------------------------------------------------------
@@ -69,6 +70,11 @@ package SpiTbPkg is
         constant Period         : SpiClkType
     );
 
+    procedure SetSpiMode(
+        signal   TransactionRec : inout StreamRecType;
+        constant SpiMode        : SpiModeType
+    );
+
     procedure SetSpiParams(
         signal OptSpiMode     : in  SpiModeType;
         signal CPOL           : out std_logic;
@@ -86,9 +92,7 @@ package SpiTbPkg is
     -- Convenience Procedures
     ------------------------------------------------------------
     procedure GoIdle(
-        signal CPOL : in  std_logic;
         signal CSEL : out std_logic;
-        signal SCLK : out std_logic;
         signal PICO : out std_logic
         );
 
@@ -108,6 +112,18 @@ package body SpiTbPkg is
                         SpiOptionType'pos(SET_SCLK_PERIOD),
                         Period);
     end procedure SetSclkPeriod;
+    ------------------------------------------------------------
+    -- SetSpiMode: Sets SPI device TX/RX characteristics
+    ------------------------------------------------------------
+    procedure SetSpiMode(
+        signal   TransactionRec : inout StreamRecType;
+        constant SpiMode        : SpiModeType
+    ) is
+    begin
+        SetModelOptions(TransactionRec,
+                        SpiOptionType'pos(SET_SPI_MODE),
+                        SpiMode);
+    end procedure SetSpiMode;
 
     ------------------------------------------------------------
     -- SetSpiParams: Helper function for SetSpiMode
@@ -128,14 +144,11 @@ package body SpiTbPkg is
     -- GoIdle:
     ------------------------------------------------------------
     procedure GoIdle(
-        signal CPOL : in  std_logic;
         signal CSEL : out std_logic;
-        signal SCLK : out std_logic;
         signal PICO : out std_logic
         ) is
     begin
         CSEL <= '1';
-        SCLK <=  CPOL;
         PICO <= '0';
     end procedure GoIdle;
 

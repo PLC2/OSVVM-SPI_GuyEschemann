@@ -77,7 +77,6 @@ architecture blocking of SpiController is
 begin
     -- Initialize SPI Controller Clock
     SpiClk <= not SpiClk after OptSclkPeriod / 2;
-
     ----------------------------------------------------------------------------
     --  Initialize SPI Controller Entity
     ----------------------------------------------------------------------------
@@ -94,7 +93,6 @@ begin
         ReceiveFifo        <= NewID("ReceiveFifo", ID,
                                     ReportMode => DISABLED,
                                     Search => PRIVATE_NAME);
-        SetSpiParams(OptSpiMode, CPOL, CPHA, OutOnOdd);
         wait;
     end process Initialize;
 
@@ -138,8 +136,9 @@ begin
                     end if;
 
                 when WAIT_FOR_CLOCK =>
+                    -- WAIT_FOR_CLOCK implementation is not suitable
+                    -- for life saving or saftey critical applications
                     WaitEdges := (TransRec.IntToModel * 3);
-
                     while WaitEdges /= 0 loop
                         wait until SpiClk'event;
                         WaitEdges := WaitEdges - 1;
@@ -156,10 +155,17 @@ begin
                     case TransRec.Options is
                         when SpiOptionType'pos(SET_SCLK_PERIOD) =>
                             OptSclkPeriod <= Transrec.TimeToModel;
-                            --Log
+                            -- Log SPI clock frequency change
                             Log(ModelID, "SCLK frequency set to " &
                                 to_string(OptSclkPeriod, 1 ns),
                                 INFO);
+
+                        when SpiOptionType'pos(SET_SPI_MODE) =>
+                        OptSpiMode <= TransRec.IntToModel;
+                        -- Log SPI mode change
+                        Log(ModelID, "Set SPI mode = " &
+                            to_string(TransRec.IntToModel),
+                            INFO);
 
                         when others =>
                             Alert(ModelID, OPT_ERR_MSG &
@@ -182,6 +188,7 @@ begin
     ----------------------------------------------------------------------------
     -- SPI Controller Transmit and Receive Functionality
     ----------------------------------------------------------------------------
+    SCLK <= CPOL when CSEL = '1' else SpiClk;
     SpiTransactionHandler : process
         variable TxData      : std_logic_vector(7 downto 0);
         variable RxData      : std_logic_vector(7 downto 0); -- not used yet
@@ -193,12 +200,13 @@ begin
         ControllerLoop : loop
             -- Wait for transmit request with lines in idle state
             if Empty(TransmitFifo) then
-                GoIdle(CPOL, CSEL, SCLK, PICO);
+                GoIdle(CSEL, PICO);
                 WaitForToggle(TransmitRequestCount);
             else
                 -- Allow TransmitRequestCount to settle
                 wait for 0 ns;
             end if;
+            SetSpiParams(OptSpiMode, CPOL, CPHA, OutOnOdd);
 
             -- Get data off TransmitFifo
             TxData := Pop(TransmitFifo);
@@ -214,18 +222,15 @@ begin
             CSEL <= '0';
 
             for BitIdx in 7 downto 0 loop
-                SCLK     <= SpiClk;
                 PICO     <= TxData(BitIdx) when OutOnOdd;
                 --
                 wait until SpiClk /= CPOL and SpiClk'event;
                 --
-                SCLK     <= SpiClk;
                 PICO     <= TxData(BitIdx) when not OutOnOdd;
                 --
                 wait until SpiClk = CPOL and SpiClk'event;
             end loop;
 
-            SCLK <= SpiClk;
             wait until SpiClk /= CPOL and SpiClk'event;
 
             Increment(TransmitDoneCount);
