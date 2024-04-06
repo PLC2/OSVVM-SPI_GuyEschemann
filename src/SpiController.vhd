@@ -66,14 +66,15 @@ architecture blocking of SpiController is
     signal ReceiveCount         : integer              :=  0;
     -- SPI Mode Signals
     signal OptSpiMode           : SpiModeType          :=  0;
-    signal CPOL                 : SpiCPOLType          :=  0;
-    signal CPHA                 : SpiCPHAType          :=  0;
+    signal CPOL                 : std_logic            := '0';
+    signal CPHA                 : std_logic            := '0';
     signal OutOnOdd             : boolean              :=  FALSE;
     -- SPI Clock Signals
-    signal OptSclkPeriod        : SpiClkType           :=  SCLK_PERIOD;
     signal SpiClk               : std_logic            := '0';
+    signal OptSclkPeriod        : SpiClkType           :=  SCLK_PERIOD;
 
 begin
+    -- Initialize SPI Controller Internal Clock
     SpiClk <= not SpiClk after OptSclkPeriod / 2;
 
     ----------------------------------------------------------------------------
@@ -84,13 +85,13 @@ begin
     begin
         ID                 := NewID(MODEL_INSTANCE_NAME);
         ModelID            <= ID;
+        TransRec.BurstFifo <= NewID("BurstFifo", ID,
+                                    Search => PRIVATE_NAME);
         TransmitFifo       <= NewID("TransmitFifo", ID,
                                     ReportMode => DISABLED,
                                     Search     => PRIVATE_NAME);
         ReceiveFifo        <= NewID("ReceiveFifo", ID,
                                     ReportMode => DISABLED,
-                                    Search => PRIVATE_NAME);
-        TransRec.BurstFifo <= NewID("BurstFifo", ID,
                                     Search => PRIVATE_NAME);
         wait;
     end process Initialize;
@@ -161,6 +162,7 @@ begin
                         when SpiOptionType'pos(SET_SPI_MODE) =>
                             OptSpiMode <= TransRec.IntToModel;
                             SetSpiParams(OptSpiMode, CPOL, CPHA, OutOnOdd);
+                            --GoIdle(CPOL, CSEL, SCLK, PICO);
                             -- Log
                             Log(ModelID,
                                 "Set SPI mode = " &
@@ -192,11 +194,10 @@ begin
         variable TxData      : std_logic_vector(7 downto 0);
         variable RxData      : std_logic_vector(7 downto 0); -- not used yet
         variable RxBitCnt    : integer := 0;                 -- not used yet
-        variable IdleState   : std_logic;
 
     begin
         wait for 0 ns;
-        IdleState := '0' when CPOL = 0 else '1';
+
         ControllerLoop : loop
             -- Wait for transmit request with lines in idle state
             if Empty(TransmitFifo) then
@@ -217,23 +218,23 @@ begin
                 DEBUG);
 
             -- Transmit each bit in byte;
-            wait until SpiClk = IdleState and SpiClk'event;
+            wait until SpiClk = CPOL and SpiClk'event;
             CSEL <= '0';
 
             for BitIdx in 7 downto 0 loop
                 SCLK     <= SpiClk;
                 PICO     <= TxData(BitIdx) when OutOnOdd;
                 --
-                wait until SpiClk /= IdleState and SpiClk'event;
+                wait until SpiClk /= CPOL and SpiClk'event;
                 --
                 SCLK     <= SpiClk;
                 PICO     <= TxData(BitIdx) when not OutOnOdd;
                 --
-                wait until SpiClk = IdleState and SpiClk'event;
+                wait until SpiClk = CPOL and SpiClk'event;
             end loop;
 
             SCLK <= SpiClk;
-            wait until SpiClk /= IdleState and SpiClk'event;
+            wait until SpiClk /= CPOL and SpiClk'event;
 
             Increment(TransmitDoneCount);
 

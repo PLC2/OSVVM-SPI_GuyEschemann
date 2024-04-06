@@ -49,8 +49,7 @@ begin
         TbID <= GetAlertLogID("TB");
 
         -- Wait for testbench initialization
-        wait for 0 ns;
-        wait for 0 ns;
+        wait for 0 ns; wait for 0 ns;
         TranscriptOpen(OSVVM_RESULTS_DIR & "TbSpi_Operation1.txt");
         SetTranscriptMirror(TRUE) ;
 
@@ -85,10 +84,19 @@ begin
 
         -- Send Some Words
         WaitForClock(SpiControllerRec, 5);
-        Send(SpiControllerRec, X"FF");
+        Send(SpiControllerRec, X"AA");
+        SetSpiMode(SpiControllerRec, 1);
         WaitForClock(SpiControllerRec, 5);
-        Send(SpiControllerRec, X"05");
+        Send(SpiControllerRec, X"AA");
+        SetSpiMode(SpiControllerRec, 2);
         WaitForClock(SpiControllerRec, 5);
+        Send(SpiControllerRec, X"AA");
+        SetSpiMode(SpiControllerRec, 3);
+        WaitForClock(SpiControllerRec, 5);
+        Send(SpiControllerRec, X"AA");
+        WaitForClock(SpiControllerRec, 5);
+
+
 
         -- Set Done
         TestDone <= 1;

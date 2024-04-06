@@ -38,8 +38,6 @@ package SpiTbPkg is
     ------------------------------------------------------------
 
     subtype SpiModeType is natural range 0 to 3;
-    subtype SpiCPHAType is natural range 0 to 1;
-    subtype SpiCPOLType is natural range 0 to 1;
 
     ------------------------------------------------------------
     -- SPI Options
@@ -72,24 +70,29 @@ package SpiTbPkg is
         constant Period         : SpiClkType
     );
 
+    procedure SetSpiMode(
+        signal   TransactionRec : inout StreamRecType;
+        constant SpiMode        : SpiModeType
+    );
+
     procedure SetSpiParams(
         signal OptSpiMode     : in  SpiModeType;
-        signal CPOL           : out SpiCPOLType;
-        signal CPHA           : out SpiCPHAType;
+        signal CPOL           : out std_logic;
+        signal CPHA           : out std_logic;
         signal OutOnFirstEdge : out boolean
     );
     ------------------------------------------------------------
     -- SPI Parameter Helpers
     ------------------------------------------------------------
-    pure function GetCPOL    (SpiMode : in SpiModeType) return SpiCPOLType;
-    pure function GetCPHA    (SpiMode : in SpiModeType) return SpiCPHAType;
+    pure function GetCPOL    (SpiMode : in SpiModeType) return std_logic;
+    pure function GetCPHA    (SpiMode : in SpiModeType) return std_logic;
     pure function OddEdgeOut (SpiMode : in SpiModetype) return boolean;
 
     ------------------------------------------------------------
     -- Convenience Procedures
     ------------------------------------------------------------
     procedure GoIdle(
-        signal CPOL : in SpiCPOLType;
+        signal CPOL : in  std_logic;
         signal CSEL : out std_logic;
         signal SCLK : out std_logic;
         signal PICO : out std_logic
@@ -129,8 +132,8 @@ package body SpiTbPkg is
     ------------------------------------------------------------
     procedure SetSpiParams(
         signal OptSpiMode     : in  SpiModeType;
-        signal CPOL           : out SpiCPOLType;
-        signal CPHA           : out SpiCPHAType;
+        signal CPOL           : out std_logic;
+        signal CPHA           : out std_logic;
         signal OutOnFirstEdge : out boolean
     ) is
     begin
@@ -143,27 +146,27 @@ package body SpiTbPkg is
     -- GoIdle:
     ------------------------------------------------------------
     procedure GoIdle(
-        signal CPOL : in  SpiCPOLType;
+        signal CPOL : in  std_logic;
         signal CSEL : out std_logic;
         signal SCLK : out std_logic;
         signal PICO : out std_logic
         ) is
     begin
         CSEL <= '1';
+        SCLK <=  CPOL;
         PICO <= '0';
-        SCLK <= '0' when CPOL = 0 else '1';
     end procedure GoIdle;
 
     ------------------------------------------------------------
     -- GetCPOL: Helper function for SetSpiMode
     ------------------------------------------------------------
-    function GetCPOL(SpiMode : in SpiModeType) return SpiCPOLType is
-        variable retval : SpiCPOLType;
+    function GetCPOL(SpiMode : in SpiModeType) return std_logic is
+        variable retval : std_logic;
     begin
         if SpiMode = 0 or SpiMode = 1 then
-            retval := 0;
+            retval := '0';
         else
-            retval := 1;
+            retval := '1';
         end if;
         return retval;
     end function GetCPOL;
@@ -171,13 +174,13 @@ package body SpiTbPkg is
     ------------------------------------------------------------
     -- GetCPHA: Helper function for SetSpiMode
     ------------------------------------------------------------
-    pure function GetCPHA(SpiMode : in SpiModeType) return SpiCPHAType is
-        variable retval : SpiCPHAType;
+    pure function GetCPHA(SpiMode : in SpiModeType) return std_logic is
+        variable retval : std_logic;
     begin
         if SpiMode = 0 or SpiMode = 2 then
-            retval := 0;
+            retval := '0';
         else
-            retval := 1;
+            retval := '1';
         end if;
         return retval;
     end function GetCPHA;
@@ -193,6 +196,7 @@ package body SpiTbPkg is
         else
             retval := FALSE;
         end if;
+        return retval;
     end function OddEdgeOut;
 
 end SpiTbPkg;
