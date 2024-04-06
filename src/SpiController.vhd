@@ -27,8 +27,9 @@ use work.SpiTbPkg.all;
 
 entity SpiController is
     generic(
-        MODEL_ID_NAME : string     := "";
-        SCLK_PERIOD   : SpiClkType := SPI_SCLK_PERIOD_1M
+        MODEL_ID_NAME : string      := "";
+        SPI_MODE      : SpiModeType := 0;
+        SCLK_PERIOD   : SpiClkType  := SPI_SCLK_PERIOD_1M
     );
     port(
         TransRec : inout   SpiRecType;
@@ -65,7 +66,7 @@ architecture blocking of SpiController is
     signal TransmitDoneCount    : integer              :=  0;
     signal ReceiveCount         : integer              :=  0;
     -- SPI Mode Signals
-    signal OptSpiMode           : SpiModeType          :=  0;
+    signal OptSpiMode           : SpiModeType          :=  SPI_MODE;
     signal CPOL                 : std_logic            := '0';
     signal CPHA                 : std_logic            := '0';
     signal OutOnOdd             : boolean              :=  FALSE;
@@ -74,7 +75,7 @@ architecture blocking of SpiController is
     signal OptSclkPeriod        : SpiClkType           :=  SCLK_PERIOD;
 
 begin
-    -- Initialize SPI Controller Internal Clock
+    -- Initialize SPI Controller Clock
     SpiClk <= not SpiClk after OptSclkPeriod / 2;
 
     ----------------------------------------------------------------------------
@@ -93,6 +94,7 @@ begin
         ReceiveFifo        <= NewID("ReceiveFifo", ID,
                                     ReportMode => DISABLED,
                                     Search => PRIVATE_NAME);
+        SetSpiParams(OptSpiMode, CPOL, CPHA, OutOnOdd);
         wait;
     end process Initialize;
 
@@ -157,16 +159,6 @@ begin
                             --Log
                             Log(ModelID, "SCLK frequency set to " &
                                 to_string(OptSclkPeriod, 1 ns),
-                                INFO);
-
-                        when SpiOptionType'pos(SET_SPI_MODE) =>
-                            OptSpiMode <= TransRec.IntToModel;
-                            SetSpiParams(OptSpiMode, CPOL, CPHA, OutOnOdd);
-                            --GoIdle(CPOL, CSEL, SCLK, PICO);
-                            -- Log
-                            Log(ModelID,
-                                "Set SPI mode = " &
-                                to_string(TransRec.IntToModel),
                                 INFO);
 
                         when others =>

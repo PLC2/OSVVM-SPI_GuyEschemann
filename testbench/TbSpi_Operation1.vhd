@@ -85,15 +85,6 @@ begin
         -- Send Some Words
         WaitForClock(SpiControllerRec, 5);
         Send(SpiControllerRec, X"AA");
-        SetSpiMode(SpiControllerRec, 1);
-        WaitForClock(SpiControllerRec, 5);
-        Send(SpiControllerRec, X"AA");
-        SetSpiMode(SpiControllerRec, 2);
-        WaitForClock(SpiControllerRec, 5);
-        Send(SpiControllerRec, X"AA");
-        SetSpiMode(SpiControllerRec, 3);
-        WaitForClock(SpiControllerRec, 5);
-        Send(SpiControllerRec, X"AA");
         WaitForClock(SpiControllerRec, 5);
 
 

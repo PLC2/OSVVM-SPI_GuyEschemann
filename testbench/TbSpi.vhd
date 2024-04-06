@@ -50,6 +50,7 @@ architecture TestHarness of TbSpi is
     -- Test Bench Constants
     constant tperiod_Clk      : time := 10 ns;
     constant tpd              : time :=  2 ns;
+    constant spi_mode         : SpiModeType := 3;
 
     -- Global Signals
     signal Clk              : std_logic;
@@ -97,6 +98,9 @@ begin
     -- SPI
     ------------------------------------------------------------
     Spi_1 : SpiController
+        generic map(
+            SPI_MODE => spi_mode
+        )
         port map(
             TransRec => SpiControllerRec,
             SCLK     => SCLK,

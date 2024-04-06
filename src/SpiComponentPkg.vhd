@@ -44,6 +44,7 @@ package SpiComponentPkg is
     component SpiController is
         generic(
             MODEL_ID_NAME       : string        := "";
+            SPI_MODE            : SpiModeType   := 0;
             SCLK_PERIOD         : SpiClkType    := SPI_SCLK_PERIOD_1M
         );
         port(

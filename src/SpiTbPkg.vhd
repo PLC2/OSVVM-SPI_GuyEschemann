@@ -43,8 +43,7 @@ package SpiTbPkg is
     -- SPI Options
     ------------------------------------------------------------
     type SpiOptionType is (
-        SET_SCLK_PERIOD,
-        SET_SPI_MODE
+        SET_SCLK_PERIOD
     );
 
     ------------------------------------------------------------
@@ -68,11 +67,6 @@ package SpiTbPkg is
     procedure SetSclkPeriod(
         signal   TransactionRec : inout StreamRecType;
         constant Period         : SpiClkType
-    );
-
-    procedure SetSpiMode(
-        signal   TransactionRec : inout StreamRecType;
-        constant SpiMode        : SpiModeType
     );
 
     procedure SetSpiParams(
@@ -114,18 +108,6 @@ package body SpiTbPkg is
                         SpiOptionType'pos(SET_SCLK_PERIOD),
                         Period);
     end procedure SetSclkPeriod;
-    ------------------------------------------------------------
-    -- SetSpiMode: Sets device SPI operation mode (0 - 3)
-    ------------------------------------------------------------
-    procedure SetSpiMode(
-        signal   TransactionRec : inout StreamRecType;
-        constant SpiMode        : SpiModeType
-    ) is
-    begin
-        SetModelOptions(TransactionRec,
-                        SpiOptionType'pos(SET_SPI_MODE),
-                        SpiMode);
-    end procedure;
 
     ------------------------------------------------------------
     -- SetSpiParams: Helper function for SetSpiMode
