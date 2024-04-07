@@ -31,7 +31,7 @@ entity SpiPeripheral is
         SPI_MODE      : SpiModeType := 0
     );
     port(
-        TransRec : inout   SpiRecType;
+        TransRec : inout  SpiRecType;
         SCLK     : in     std_logic;
         CSEL     : in     std_logic;
         PICO     : in     std_logic;
@@ -66,7 +66,7 @@ architecture blocking of SpiPeripheral is
     signal ReceiveCount         : integer              :=  0;
     -- SPI Mode Signals
     signal OptSpiMode           : SpiModeType          :=  SPI_MODE;
-    signal OutOnOdd             : boolean              :=  FALSE;
+    signal InOnRise             : boolean              :=  FALSE;
 
 begin
 
@@ -94,8 +94,9 @@ begin
     ----------------------------------------------------------------------------
 
     TransactionDispatcher : process
-        alias Operation        : StreamOperationType is TransRec.Operation;
-        variable RxData        : std_logic_vector(7 downto 0);
+        alias Operation : StreamOperationType is TransRec.Operation;
+        variable RxData : std_logic_vector(7 downto 0);
+        variable TxData : std_logic_vector(7 downto 0);
 
     begin
         -- Wait for ModelID to get set
@@ -109,15 +110,57 @@ begin
             );
 
             case Operation is
+                when SEND =>
+                    Log(ModelID, "SEND", DEBUG);
+                    --
+                    TxData := SafeResize(TransRec.DataToModel, TxData'length);
+                    Push(TransmitFifo, TxData);
+                    Increment(TransmitRequestCount);
+                    wait for 0 ns; -- Ensure increment
+                    wait until TransmitRequestCount = TransmitDoneCount;
+
+                when SEND_ASYNC =>
+                    Log(ModelID, "SEND_ASYNC", DEBUG);
+                    --
+                    TxData := SafeResize(TransRec.DataToModel, TxData'length);
+                    Push(TransmitFifo, TxData);
+                    Increment(TransmitRequestCount);
+
+                when GET =>
+                    Log(ModelID, "GET", DEBUG);
+                    --
+                    if Empty(ReceiveFifo) then
+                        WaitForToggle(ReceiveCount);
+                    end if;
+                    RxData := Pop(ReceiveFifo);
+                    TransRec.DataFromModel <= SafeResize(RxData,
+                                                         TransRec.DataFromModel
+                                                        );
+
+                when WAIT_FOR_TRANSACTION =>
+                    Log(ModelID, "WAIT_FOR_TRANSACTION", DEBUG);
+                    --
+                    if Empty(ReceiveFifo) then
+                        WaitForToggle(ReceiveCount);
+                    end if;
+
+                when WAIT_FOR_CLOCK =>
+                    Log(ModelID, "WAIT_FOR_CLOCK", DEBUG);
+                    --
+                    WaitCycles := TransRec.IntToModel;
+                    -- Make this wait for X num of actual sclk cycles
 
                 when GET_ALERTLOG_ID =>
+                    Log(ModelID, "GET_ALERTLOG_ID", DEBUG);
+                    --
                     TransRec.IntFromModel <= ModelID;
 
                 when GET_TRANSACTION_COUNT =>
+                    Log(ModelID, "GET_TRANSACTION_COUNT", DEBUG);
+                    --
                     TransRec.IntFromModel <= TransmitDoneCount;
 
                 when SET_MODEL_OPTIONS =>
-
                     case TransRec.Options is
                         when SpiOptionType'pos(SET_SPI_MODE) =>
                         OptSpiMode <= TransRec.IntToModel;
@@ -147,26 +190,35 @@ begin
     ----------------------------------------------------------------------------
     -- SPI Peripheral Receive and Transmit Functionality
     ----------------------------------------------------------------------------
-    SpiTransactionHandler : process
-        variable TxData      : std_logic_vector(7 downto 0);
-        variable RxData      : std_logic_vector(7 downto 0); -- not used yet
-        variable RxBitCnt    : integer := 0;                 -- not used yet
+    SpiRxHandler : process
+        variable RxData      : std_logic_vector(7 downto 0);
+        variable TxData      : std_logic_vector(7 downto 0); -- not used yet
 
     begin
         wait for 0 ns;
-
-        PeripheralLoop : loop
-            -- Wait for transmit request with lines in idle state
-            if Empty(TransmitFifo) then
-                GoIdle(CSEL, PICO);
-                WaitForToggle(TransmitRequestCount);
-            else
-                -- Allow TransmitRequestCount to settle
-                wait for 0 ns;
+        -- Shift in PICO data on edge per SPI Mode
+        if CSEL = '0' then
+            if rising_edge(SCLK) and InOnRise then
+                RxData := RxData(RxData'high - 1 downto RxData'low) &
+                                 PICO;
+            elsif falling_edge(SCLK) and not InOnRise then
+                RxData := RxData(RxData'high - 1 downto RxData'low) &
+                                PICO;
             end if;
-
+        end if;
+        -- Push RX data on CSEL rise / Update SPI Mode on CSEL fall
+        if rising_edge(CSEL) then
+            Push(ReceiveFifo, RxData);
             Increment(ReceiveCount);
+        elsif falling_edge(CSEL) then
+            InOnRise <= TRUE when OptSpiMode = 0 or OptSpiMode = 3 else FALSE;
+        end if;
 
-        end loop PeripheralLoop;
-    end process SpiTransactionHandler;
+    end process SpiRxHandler;
+
+    SpiTxHandler : process
+    begin
+        if TRUE then
+        end if;
+    end process SpiTxHandler;
 end architecture blocking;

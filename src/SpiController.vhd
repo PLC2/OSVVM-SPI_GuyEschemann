@@ -123,12 +123,8 @@ begin
                                          TxData'length);
                     Push(TransmitFifo, TxData);
                     Increment(TransmitRequestCount);
-                    wait for 0 ns;
-
-                    -- Wait TX complete if operation is blocking
-                    if IsBlocking(TransRec.Operation) then
-                        wait until TransmitRequestCount = TransmitDoneCount;
-                    end if;
+                    wait for 0 ns; -- Ensure increment
+                    wait until TransmitRequestCount = TransmitDoneCount;
 
                 when WAIT_FOR_TRANSACTION =>
                     if TransmitRequestCount /= TransmitDoneCount then
@@ -189,7 +185,7 @@ begin
     -- SPI Controller Transmit and Receive Functionality
     ----------------------------------------------------------------------------
     SCLK <= CPOL when CSEL = '1' else SpiClk;
-    SpiTransactionHandler : process
+    SpiTxHandler : process
         variable TxData      : std_logic_vector(7 downto 0);
         variable RxData      : std_logic_vector(7 downto 0); -- not used yet
         variable RxBitCnt    : integer := 0;                 -- not used yet
@@ -197,7 +193,7 @@ begin
     begin
         wait for 0 ns;
 
-        ControllerLoop : loop
+        ControllerTxLoop : loop
             -- Wait for transmit request with lines in idle state
             if Empty(TransmitFifo) then
                 GoIdle(CSEL, PICO);
@@ -211,10 +207,8 @@ begin
             -- Get data off TransmitFifo
             TxData := Pop(TransmitFifo);
 
-            Log(ModelID,
-                "SPI TxData: " & to_string(TxData) &
-                ", TransmitRequestCount # " &
-                to_string(TransmitRequestCount),
+            Log(ModelID, "SPI Controller TxData: " & to_string(TxData) &
+                ", TransmitRequestCount # " & to_string(TransmitRequestCount),
                 DEBUG);
 
             -- Transmit each bit in byte;
@@ -235,6 +229,6 @@ begin
 
             Increment(TransmitDoneCount);
 
-        end loop ControllerLoop;
-    end process SpiTransactionHandler;
+        end loop ControllerTxLoop;
+    end process SpiTxHandler;
 end architecture blocking;
