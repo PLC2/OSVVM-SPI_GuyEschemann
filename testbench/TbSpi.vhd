@@ -128,6 +128,7 @@ begin
     TestCtrl_1 : TestCtrl
         port map(
             SpiControllerRec => SpiControllerRec,
+            SpiDeviceRec     => SpiDeviceRec,
             Clk              => Clk,
             n_Reset          => n_Reset
         );

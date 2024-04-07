@@ -42,7 +42,7 @@ end entity SpiPeripheral;
 architecture blocking of SpiPeripheral is
 
     ----------------------------------------------------------------------------
-    -- Constants
+    -- SPI Peripheral Constants
     ----------------------------------------------------------------------------
 
     -- Use MODEL_ID_NAME Generic if set, otherwise,
@@ -55,7 +55,7 @@ architecture blocking of SpiPeripheral is
                                                     )));
 
     ----------------------------------------------------------------------------
-    -- Signals
+    -- SPI Peripheral Signals
     ----------------------------------------------------------------------------
     -- Model Signals
     signal ModelID              : AlertLogIDType;
@@ -90,7 +90,7 @@ begin
     end process Initialize;
 
     ----------------------------------------------------------------------------
-    --  Transaction dispatcher
+    --  SPI Peripheral Transaction dispatcher
     ----------------------------------------------------------------------------
 
     TransactionDispatcher : process
@@ -104,7 +104,6 @@ begin
 
         TransactionDispatcherLoop : loop
             WaitForTransaction(
-                Clk => SpiClk,
                 Rdy => TransRec.Rdy,
                 Ack => TransRec.Ack
             );
@@ -191,9 +190,7 @@ begin
     -- SPI Peripheral Receive and Transmit Functionality
     ----------------------------------------------------------------------------
     SpiRxHandler : process
-        variable RxData      : std_logic_vector(7 downto 0);
-        variable TxData      : std_logic_vector(7 downto 0); -- not used yet
-
+        variable RxData : std_logic_vector(7 downto 0);
     begin
         wait for 0 ns;
         -- Shift in PICO data on edge per SPI Mode
@@ -217,8 +214,25 @@ begin
     end process SpiRxHandler;
 
     SpiTxHandler : process
+        variable TxData : std_logic_vector(7 downto 0); -- not used yet
+        variable OutBit : integer;
     begin
-        if TRUE then
+        if Empty(TransmitFifo) then
+            OutBit := TxData'length - 1;
+            WaitForToggle(TransmitRequestCount);
+        else
+        wait for 0 ns;
         end if;
+
+        TxData := Pop(TransmitFifo);
+        while CSEL = '0' and OutBit >= 0 loop
+            if rising_edge(SCLK) and not InOnRise then
+                POCI <= TxData(OutBit);
+                OutBit := OutBit - 1;
+            elsif falling_edge(SCLK) and InOnRise then
+                POCI <= TxData(OutBit);
+                OutBit := OutBit - 1;
+            end if;
+        end loop;
     end process SpiTxHandler;
 end architecture blocking;
