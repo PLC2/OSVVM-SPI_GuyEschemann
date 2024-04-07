@@ -62,14 +62,15 @@ architecture blocking of SpiController is
     signal ModelID              : AlertLogIDType;
     signal TransmitFifo         : osvvm.ScoreboardPkg_slv.ScoreboardIDType;
     signal ReceiveFifo          : osvvm.ScoreboardPkg_slv.ScoreboardIDType;
-    signal TransmitRequestCount : integer              :=  0;
-    signal TransmitDoneCount    : integer              :=  0;
-    signal ReceiveCount         : integer              :=  0;
+    signal TransmitRequestCount : integer              := 0;
+    signal TransmitDoneCount    : integer              := 0;
+    signal ReceiveCount         : integer              := 0;
     -- SPI Mode Signals
-    signal OptSpiMode           : SpiModeType          :=  SPI_MODE;
+    signal OptSpiMode           : SpiModeType          := SPI_MODE;
     signal CPOL                 : std_logic            := '0';
     signal CPHA                 : std_logic            := '0';
-    signal OutOnOdd             : boolean              :=  FALSE;
+    signal OutOnOdd             : boolean              := FALSE;
+    signal InOnRise             : boolean              := TRUE;
     -- SPI Clock Signals
     signal SpiClk               : std_logic            := '0';
     signal OptSclkPeriod        : SpiClkType           :=  SCLK_PERIOD;
@@ -207,7 +208,7 @@ begin
 
             -- Pop data for TX & propogate any SPI Mode changes
             TxData := Pop(TransmitFifo);
-            SetSpiParams(OptSpiMode, CPOL, CPHA, OutOnOdd);
+            SetSpiParams(OptSpiMode, CPOL, CPHA, OutOnOdd, InOnRise);
             Log(ModelID, "SPI Controller TxData: " & to_string(TxData) &
                 ", TransmitRequestCount # " & to_string(TransmitRequestCount),
                 DEBUG);

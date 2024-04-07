@@ -61,12 +61,15 @@ architecture blocking of SpiPeripheral is
     signal ModelID              : AlertLogIDType;
     signal TransmitFifo         : osvvm.ScoreboardPkg_slv.ScoreboardIDType;
     signal ReceiveFifo          : osvvm.ScoreboardPkg_slv.ScoreboardIDType;
-    signal TransmitRequestCount : integer              :=  0;
-    signal TransmitDoneCount    : integer              :=  0;
-    signal ReceiveCount         : integer              :=  0;
+    signal TransmitRequestCount : integer              := 0;
+    signal TransmitDoneCount    : integer              := 0;
+    signal ReceiveCount         : integer              := 0;
     -- SPI Mode Signals
-    signal OptSpiMode           : SpiModeType          :=  SPI_MODE;
-    signal InOnRise             : boolean              :=  FALSE;
+    signal OptSpiMode           : SpiModeType          := SPI_MODE;
+    signal CPOL                 : std_logic            := '0';
+    signal CPHA                 : std_logic            := '0';
+    signal OddEdgeOut           : boolean              := FALSE;
+    signal InOnRise             : boolean              := TRUE;
 
 begin
 
@@ -203,12 +206,12 @@ begin
         wait for 0 ns;
         -- Shift in PICO data on SCLK edge per SPI Mode
         if CSEL = '0' then
-            if rising_edge(SCLK) and InOnRise then
+            if InOnRise then
                 RxData := RxData(RxData'high - 1 downto RxData'low) &
-                                 PICO;
-            elsif falling_edge(SCLK) and not InOnRise then
+                                 PICO when rising_edge(SCLK);
+            else
                 RxData := RxData(RxData'high - 1 downto RxData'low) &
-                                PICO;
+                                PICO when falling_edge(SCLK);
             end if;
         end if;
         -- Push RX data on CSEL rise / Update SPI Mode on CSEL fall
@@ -216,7 +219,7 @@ begin
             Push(ReceiveFifo, RxData);
             Increment(ReceiveCount);
         elsif falling_edge(CSEL) then
-            InOnRise <= TRUE when OptSpiMode = 0 or OptSpiMode = 3 else FALSE;
+            SetSpiParams(OptSpiMode, CPOL, CPHA, OutOnOdd, InOnRise);
         end if;
     end process SpiRxHandler;
 
@@ -234,14 +237,14 @@ begin
         TxData := Pop(TransmitFifo);
         BitIdx := TxData'length;
         wait until CSEL = '0';
+        if not OddEdgeOut then
+            wait until SCLK'event;
+        end if;
         while CSEL = '0' and BitIdx >= 0 loop
-            if InOnRise and falling_edge(SCLK)then
-                POCI <= TxData(BitIdx);
-                BitIdx := BitIdx - 1;
-            elsif not InOnRise and rising_edge(SCLK) then
-                POCI <= TxData(BitIdx);
-                BitIdx := BitIdx - 1;
-            end if;
+            wait until SCLK'event;
+            POCI   <= TxData(BitIdx);
+            BitIdx := BitIdx - 1;
+            wait until SCLK'event;
         end loop;
     end process SpiTxHandler;
 end architecture blocking;

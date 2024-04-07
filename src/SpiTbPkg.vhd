@@ -79,14 +79,16 @@ package SpiTbPkg is
         signal OptSpiMode     : in  SpiModeType;
         signal CPOL           : out std_logic;
         signal CPHA           : out std_logic;
-        signal OutOnFirstEdge : out boolean
+        signal OutOnFirstEdge : out boolean;
+        signal InOnRiseEdge   : out boolean
     );
     ------------------------------------------------------------
     -- SPI Parameter Helpers
     ------------------------------------------------------------
-    pure function GetCPOL    (SpiMode : in SpiModeType) return std_logic;
-    pure function GetCPHA    (SpiMode : in SpiModeType) return std_logic;
-    pure function OddEdgeOut (SpiMode : in SpiModetype) return boolean;
+    pure function GetCPOL     (SpiMode : in SpiModeType) return std_logic;
+    pure function GetCPHA     (SpiMode : in SpiModeType) return std_logic;
+    pure function GetInOnRise (SpiMode : in SpiModeType) return boolean;
+    pure function OddEdgeOut  (SpiMode : in SpiModetype) return boolean;
 
     ------------------------------------------------------------
     -- Convenience Procedures
@@ -132,12 +134,14 @@ package body SpiTbPkg is
         signal OptSpiMode     : in  SpiModeType;
         signal CPOL           : out std_logic;
         signal CPHA           : out std_logic;
-        signal OutOnFirstEdge : out boolean
+        signal OutOnFirstEdge : out boolean;
+        signal InOnRiseEdge   : out boolean;
     ) is
     begin
         CPOL           <= GetCPOL(OptSpiMode);
         CPHA           <= GetCPHA(OptSpiMode);
         OutOnFirstEdge <= OddEdgeOut(OptSpiMode);
+        InOnRiseEdge   <= GetInOnRise(OptSpiMode);
     end procedure SetSpiParams;
 
     ------------------------------------------------------------
@@ -184,14 +188,24 @@ package body SpiTbPkg is
     -- OddEdgeOut: Returns true if data out on odd edges
     ------------------------------------------------------------
     pure function OddEdgeOut (SpiMode : in SpiModetype) return boolean is
-        variable retval : boolean;
+        variable retval : boolean := FALSE;
     begin
         if SpiMode = 1 or SpiMode = 3 then
             retval := TRUE;
-        else
-            retval := FALSE;
         end if;
         return retval;
     end function OddEdgeOut;
+
+    ------------------------------------------------------------
+    -- GetInOnRise: Returns true if data clocked in on SCLK rising edge
+    ------------------------------------------------------------
+    pure function GetInOnRise (SpiMode : in SpiModeType) return boolean is
+        variable retval : boolean := FALSE;
+    begin
+        if SpiMode = 0 or SpiMode = 3 then
+            retval := TRUE;
+        end if;
+        return retval;
+    end function GetInOnRise;
 
 end SpiTbPkg;
