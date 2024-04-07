@@ -1,5 +1,5 @@
 --
---  File Name:         SpiController.vhd
+--  File Name:         SpiPeripheral.vhd
 --  Design Unit Name:  SPI
 --  OSVVM Release:     TODO
 --
@@ -28,8 +28,7 @@ use work.SpiTbPkg.all;
 entity SpiPeripheral is
     generic(
         MODEL_ID_NAME : string      := "";
-        SPI_MODE      : SpiModeType := 0;
-        SCLK_PERIOD   : SpiClkType  := SPI_SCLK_PERIOD_1M
+        SPI_MODE      : SpiModeType := 0
     );
     port(
         TransRec : inout   SpiRecType;
@@ -38,9 +37,9 @@ entity SpiPeripheral is
         PICO     : in     std_logic;
         POCI     : out    std_logic
     );
-end entity SpiController;
+end entity SpiPeripheral;
 
-architecture blocking of SpiController is
+architecture blocking of SpiPeripheral is
 
     ----------------------------------------------------------------------------
     -- Constants
@@ -52,7 +51,7 @@ architecture blocking of SpiController is
                                                     MODEL_ID_NAME,
                                                     to_lower(
                                                     PathTail(
-                                                    SpiController'PATH_NAME
+                                                    SpiPeripheral'PATH_NAME
                                                     )));
 
     ----------------------------------------------------------------------------
@@ -67,8 +66,6 @@ architecture blocking of SpiController is
     signal ReceiveCount         : integer              :=  0;
     -- SPI Mode Signals
     signal OptSpiMode           : SpiModeType          :=  SPI_MODE;
-    signal CPOL                 : std_logic            := '0';
-    signal CPHA                 : std_logic            := '0';
     signal OutOnOdd             : boolean              :=  FALSE;
 
 begin
@@ -89,7 +86,6 @@ begin
         ReceiveFifo        <= NewID("ReceiveFifo", ID,
                                     ReportMode => DISABLED,
                                     Search => PRIVATE_NAME);
-        SetSpiParams(OptSpiMode, CPOL, CPHA, OutOnOdd);
         wait;
     end process Initialize;
 
@@ -99,8 +95,7 @@ begin
 
     TransactionDispatcher : process
         alias Operation        : StreamOperationType is TransRec.Operation;
-        variable WaitEdges     : integer;
-        variable TxData        : std_logic_vector(7 downto 0);
+        variable RxData        : std_logic_vector(7 downto 0);
 
     begin
         -- Wait for ModelID to get set
@@ -114,31 +109,6 @@ begin
             );
 
             case Operation is
-                when SEND =>
-                    Log(ModelID, "SEND", INFO);
-                    TxData := SafeResize(TransRec.DataToModel,
-                                         TxData'length);
-                    Push(TransmitFifo, TxData);
-                    Increment(TransmitRequestCount);
-                    wait for 0 ns;
-
-                    -- Wait TX complete if operation is blocking
-                    if IsBlocking(TransRec.Operation) then
-                        wait until TransmitRequestCount = TransmitDoneCount;
-                    end if;
-
-                when WAIT_FOR_TRANSACTION =>
-                    if TransmitRequestCount /= TransmitDoneCount then
-                        wait until TransmitRequestCount = TransmitDoneCount;
-                    end if;
-
-                when WAIT_FOR_CLOCK =>
-                    WaitEdges := (TransRec.IntToModel * 3);
-
-                    while WaitEdges /= 0 loop
-                        wait until SpiClk'event;
-                        WaitEdges := WaitEdges - 1;
-                    end loop;
 
                 when GET_ALERTLOG_ID =>
                     TransRec.IntFromModel <= ModelID;
@@ -149,12 +119,12 @@ begin
                 when SET_MODEL_OPTIONS =>
 
                     case TransRec.Options is
-                        when SpiOptionType'pos(SET_SCLK_PERIOD) =>
-                            OptSclkPeriod <= Transrec.TimeToModel;
-                            --Log
-                            Log(ModelID, "SCLK frequency set to " &
-                                to_string(OptSclkPeriod, 1 ns),
-                                INFO);
+                        when SpiOptionType'pos(SET_SPI_MODE) =>
+                        OptSpiMode <= TransRec.IntToModel;
+                        -- Log SPI mode change
+                        Log(ModelID, "Set SPI mode = " &
+                            to_string(TransRec.IntToModel),
+                            INFO);
 
                         when others =>
                             Alert(ModelID, OPT_ERR_MSG &
@@ -178,23 +148,25 @@ begin
     -- SPI Peripheral Receive and Transmit Functionality
     ----------------------------------------------------------------------------
     SpiTransactionHandler : process
-        variable RxData      : std_logic_vector(7 downto 0);
-        variable TxData      : std_logic_vector(7 downto 0); -- not used yet
+        variable TxData      : std_logic_vector(7 downto 0);
+        variable RxData      : std_logic_vector(7 downto 0); -- not used yet
         variable RxBitCnt    : integer := 0;                 -- not used yet
 
     begin
         wait for 0 ns;
 
         PeripheralLoop : loop
+            -- Wait for transmit request with lines in idle state
+            if Empty(TransmitFifo) then
+                GoIdle(CSEL, PICO);
+                WaitForToggle(TransmitRequestCount);
+            else
+                -- Allow TransmitRequestCount to settle
+                wait for 0 ns;
+            end if;
 
-            Log(ModelID,
-                "SPI TxData: " & to_string(TxData) &
-                ", TransmitRequestCount # " &
-                to_string(TransmitRequestCount),
-                DEBUG);
+            Increment(ReceiveCount);
 
-            Increment(TransmitDoneCount);
-
-        end loop ControllerLoop;
+        end loop PeripheralLoop;
     end process SpiTransactionHandler;
 end architecture blocking;

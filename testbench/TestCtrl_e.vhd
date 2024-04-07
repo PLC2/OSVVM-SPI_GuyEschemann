@@ -49,6 +49,7 @@ entity TestCtrl is
     port(
         -- Record Interface
         SpiControllerRec : inout SpiRecType;
+        SpiDeviceRec     : inout SpiRecType;
         -- Global Signal Interface
         Clk              : in    std_logic;
         n_Reset          : in    std_logic

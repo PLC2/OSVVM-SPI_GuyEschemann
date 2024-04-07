@@ -8,7 +8,7 @@
 --     Guy Eschemann   guy@noasic.com
 --
 --  Description:
---    SPI verification component testbench  
+--    SPI verification component testbench
 --
 --  Revision History:
 --    Date      Version    Description
@@ -58,6 +58,7 @@ architecture TestHarness of TbSpi is
 
     -- Testbench Control Records
     signal SpiControllerRec : SpiRecType;
+    signal SpiDeviceRec     : SpiRecType;
 
     -- SPI Controller Signals
     signal SCLK : std_logic;
@@ -68,6 +69,7 @@ architecture TestHarness of TbSpi is
     component TestCtrl
         port(
             SpiControllerRec : inout SpiRecType;
+            SpiDeviceRec     : inout SpiRecType;
             Clk              : in    std_logic;
             n_Reset          : in    std_logic
         );
@@ -95,9 +97,9 @@ begin
     );
 
     ------------------------------------------------------------
-    -- SPI
+    -- SPI Devices
     ------------------------------------------------------------
-    Spi_1 : SpiController
+    SpiController_1 : SpiController
         generic map(
             SPI_MODE => spi_mode
         )
@@ -109,6 +111,17 @@ begin
             POCI     => POCI
         );
 
+    SpiDevice_1 : SpiDevice
+        generic map(
+            SPI_MODE => spi_mode
+        )
+        port map(
+            TransRec => SpiDeviceRec,
+            SCLK     => SCLK,
+            CSEL     => CSEL,
+            PICO     => PICO,
+            POCI     => POCI
+        );
     ------------------------------------------------------------
     -- Stimulus generation and synchronization
     ------------------------------------------------------------

@@ -56,4 +56,18 @@ package SpiComponentPkg is
         );
     end component SpiController;
 
+    component SpiPeripheral is
+        generic(
+            MODEL_ID_NAME : string      := "";
+            SPI_MODE      : SpiModeType := 0
+        );
+        port(
+            TransRec : inout  SpiRecType;
+            SCLK     : in     std_logic;
+            CSEL     : in     std_logic;
+            PICO     : in     std_logic;
+            POCI     : out    std_logic
+        );
+    end component SpiPeripheral;
+
 end package SpiComponentPkg;

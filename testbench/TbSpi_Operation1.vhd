@@ -45,7 +45,7 @@ begin
     begin
         -- Initialization of test
         SetTestName("TbSpi_Operation1");
-        SetLogEnable(PASSED, TRUE);     -- Enable PASSED logs
+        SetLogEnable(PASSED, TRUE);
         TbID <= GetAlertLogID("TB");
 
         -- Wait for testbench initialization
@@ -63,7 +63,6 @@ begin
         AlertIf(GetAffirmCount < 1, "Test is not Self-Checking");
 
         TranscriptClose;
-        --   AlertIfDiff("./results/TbUart_Options1.txt", "../Uart/testbench/validated_results/TbUart_Options1.txt", "") ; 
 
         EndOfTestReports;
         std.env.stop(GetAlertCount);
@@ -74,12 +73,16 @@ begin
     -- SpiControllerTest: Simple
     ------------------------------------------------------------
     SpiControllerTest : process
-        variable SpiProcID : AlertLogIDType;
+        variable SpiControllerID, SpiDeviceID : AlertLogIDType;
 
     begin
-        -- Logging
-        GetAlertLogID(SpiControllerRec, SpiProcID);
-        SetLogEnable(SpiProcID, INFO, TRUE);
+        -- Enable logging for SPI Controller and Peripheral
+        GetAlertLogID(SpiControllerRec, SpiControllerID);
+        GetAlertLogID(SpiDeviceRecord,  SpiDeviceID);
+        SetLogEnable(SpiControllerID, INFO, TRUE);
+        SetLogEnable(SpiDeviceID    , INFO, TRUE);
+
+        -- Test Begins
         WaitForclock(SpiControllerRec, 2);
 
         -- Send some words in SPI Mode = 0
@@ -102,11 +105,7 @@ begin
          Send(SpiControllerRec, X"AA");
          WaitForClock(SpiControllerRec, 5);
 
-
-
-
-
-        -- Set Done
+        -- Test ends
         TestDone <= 1;
         WaitForBarrier(TestDone);
         wait;
