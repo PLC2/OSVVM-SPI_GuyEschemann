@@ -58,7 +58,7 @@ architecture TestHarness of TbSpi is
 
     -- Testbench Control Records
     signal SpiControllerRec : SpiRecType;
-    signal SpiDeviceRec     : SpiRecType;
+    signal SpiPeripheralRec : SpiRecType;
 
     -- SPI Controller Signals
     signal SCLK : std_logic;
@@ -111,12 +111,12 @@ begin
             POCI     => POCI
         );
 
-    SpiDevice_1 : SpiDevice
+    SpiPeripheral_1 : SpiPeripheral
         generic map(
             SPI_MODE => spi_mode
         )
         port map(
-            TransRec => SpiDeviceRec,
+            TransRec => SpiPeripheralRec,
             SCLK     => SCLK,
             CSEL     => CSEL,
             PICO     => PICO,
@@ -128,7 +128,7 @@ begin
     TestCtrl_1 : TestCtrl
         port map(
             SpiControllerRec => SpiControllerRec,
-            SpiDeviceRec     => SpiDeviceRec,
+            SpiPeripheralRec => SpiPeripheralRec,
             Clk              => Clk,
             n_Reset          => n_Reset
         );

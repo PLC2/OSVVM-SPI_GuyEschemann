@@ -75,6 +75,7 @@ begin
     ----------------------------------------------------------------------------
     Initialize : process
         variable ID : AlertLogIDType;
+
     begin
         ID                 := NewID(MODEL_INSTANCE_NAME);
         ModelID            <= ID;
@@ -94,9 +95,10 @@ begin
     ----------------------------------------------------------------------------
 
     TransactionDispatcher : process
-        alias Operation : StreamOperationType is TransRec.Operation;
-        variable RxData : std_logic_vector(7 downto 0);
-        variable TxData : std_logic_vector(7 downto 0);
+        alias Operation     : StreamOperationType is TransRec.Operation;
+        variable RxData     : std_logic_vector(7 downto 0);
+        variable TxData     : std_logic_vector(7 downto 0);
+        variable WaitEdges  : integer;
 
     begin
         -- Wait for ModelID to get set
@@ -133,7 +135,8 @@ begin
                     end if;
                     RxData := Pop(ReceiveFifo);
                     TransRec.DataFromModel <= SafeResize(RxData,
-                                                         TransRec.DataFromModel
+                                                         TransRec.DataFromModel'
+                                                         length
                                                         );
 
                 when WAIT_FOR_TRANSACTION =>
@@ -145,9 +148,13 @@ begin
 
                 when WAIT_FOR_CLOCK =>
                     Log(ModelID, "WAIT_FOR_CLOCK", DEBUG);
-                    --
-                    WaitCycles := TransRec.IntToModel;
-                    -- Make this wait for X num of actual sclk cycles
+                    -- WAIT_FOR_CLOCK implementation is not suitable
+                    -- for life saving or saftey critical applications
+                    WaitEdges := (TransRec.IntToModel * 3);
+                    while WaitEdges /= 0 loop
+                        wait until SCLK'event;
+                        WaitEdges := WaitEdges - 1;
+                    end loop;
 
                 when GET_ALERTLOG_ID =>
                     Log(ModelID, "GET_ALERTLOG_ID", DEBUG);
@@ -163,7 +170,7 @@ begin
                     case TransRec.Options is
                         when SpiOptionType'pos(SET_SPI_MODE) =>
                         OptSpiMode <= TransRec.IntToModel;
-                        -- Log SPI mode change
+                        --
                         Log(ModelID, "Set SPI mode = " &
                             to_string(TransRec.IntToModel),
                             INFO);
@@ -191,9 +198,10 @@ begin
     ----------------------------------------------------------------------------
     SpiRxHandler : process
         variable RxData : std_logic_vector(7 downto 0);
+
     begin
         wait for 0 ns;
-        -- Shift in PICO data on edge per SPI Mode
+        -- Shift in PICO data on SCLK edge per SPI Mode
         if CSEL = '0' then
             if rising_edge(SCLK) and InOnRise then
                 RxData := RxData(RxData'high - 1 downto RxData'low) &
@@ -210,28 +218,29 @@ begin
         elsif falling_edge(CSEL) then
             InOnRise <= TRUE when OptSpiMode = 0 or OptSpiMode = 3 else FALSE;
         end if;
-
     end process SpiRxHandler;
 
     SpiTxHandler : process
-        variable TxData : std_logic_vector(7 downto 0); -- not used yet
-        variable OutBit : integer;
+        variable TxData : std_logic_vector(7 downto 0);
+        variable BitIdx : integer;
+
     begin
         if Empty(TransmitFifo) then
-            OutBit := TxData'length - 1;
             WaitForToggle(TransmitRequestCount);
         else
         wait for 0 ns;
         end if;
 
         TxData := Pop(TransmitFifo);
-        while CSEL = '0' and OutBit >= 0 loop
-            if rising_edge(SCLK) and not InOnRise then
-                POCI <= TxData(OutBit);
-                OutBit := OutBit - 1;
-            elsif falling_edge(SCLK) and InOnRise then
-                POCI <= TxData(OutBit);
-                OutBit := OutBit - 1;
+        BitIdx := TxData'length;
+        wait until CSEL = '0';
+        while CSEL = '0' and BitIdx >= 0 loop
+            if InOnRise and falling_edge(SCLK)then
+                POCI <= TxData(BitIdx);
+                BitIdx := BitIdx - 1;
+            elsif not InOnRise and rising_edge(SCLK) then
+                POCI <= TxData(BitIdx);
+                BitIdx := BitIdx - 1;
             end if;
         end loop;
     end process SpiTxHandler;

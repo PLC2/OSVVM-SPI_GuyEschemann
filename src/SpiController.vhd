@@ -118,7 +118,8 @@ begin
 
             case Operation is
                 when SEND =>
-                    Log(ModelID, "SEND", INFO);
+                    Log(ModelID, "SEND", DEBUG);
+                    --
                     TxData := SafeResize(TransRec.DataToModel,
                                          TxData'length);
                     Push(TransmitFifo, TxData);
@@ -127,11 +128,14 @@ begin
                     wait until TransmitRequestCount = TransmitDoneCount;
 
                 when WAIT_FOR_TRANSACTION =>
+                    Log(ModelID, "WAIT_FOR_TRANSACTION", DEBUG);
+                    --
                     if TransmitRequestCount /= TransmitDoneCount then
                         wait until TransmitRequestCount = TransmitDoneCount;
                     end if;
 
                 when WAIT_FOR_CLOCK =>
+                    Log(ModelID, "WAIT_FOR_CLOCK", DEBUG);
                     -- WAIT_FOR_CLOCK implementation is not suitable
                     -- for life saving or saftey critical applications
                     WaitEdges := (TransRec.IntToModel * 3);
@@ -187,8 +191,6 @@ begin
     SCLK <= CPOL when CSEL = '1' else SpiClk;
     SpiTxHandler : process
         variable TxData      : std_logic_vector(7 downto 0);
-        variable RxData      : std_logic_vector(7 downto 0); -- not used yet
-        variable RxBitCnt    : integer := 0;                 -- not used yet
 
     begin
         wait for 0 ns;
@@ -202,19 +204,18 @@ begin
                 -- Allow TransmitRequestCount to settle
                 wait for 0 ns;
             end if;
-            SetSpiParams(OptSpiMode, CPOL, CPHA, OutOnOdd);
 
-            -- Get data off TransmitFifo
+            -- Pop data for TX & propogate any SPI Mode changes
             TxData := Pop(TransmitFifo);
-
+            SetSpiParams(OptSpiMode, CPOL, CPHA, OutOnOdd);
             Log(ModelID, "SPI Controller TxData: " & to_string(TxData) &
                 ", TransmitRequestCount # " & to_string(TransmitRequestCount),
                 DEBUG);
 
-            -- Transmit each bit in byte;
+            -- Wait for internal clock to match clock idle polarity
             wait until SpiClk = CPOL and SpiClk'event;
             CSEL <= '0';
-
+            -- Transmit TxData byte bit by bit
             for BitIdx in 7 downto 0 loop
                 PICO     <= TxData(BitIdx) when OutOnOdd;
                 --
@@ -226,7 +227,6 @@ begin
             end loop;
 
             wait until SpiClk /= CPOL and SpiClk'event;
-
             Increment(TransmitDoneCount);
 
         end loop ControllerTxLoop;
