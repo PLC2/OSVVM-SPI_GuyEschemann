@@ -65,7 +65,7 @@ begin
         TranscriptClose;
 
         EndOfTestReports;
-        std.env.stop(GetAlertCount);
+        std.env.stop;
         wait;
     end process ControlProc;
 
@@ -73,44 +73,49 @@ begin
     -- SpiControllerTest: Simple
     ------------------------------------------------------------
     SpiControllerTest : process
-        variable SpiControllerID, SpiDeviceID : AlertLogIDType;
+        variable SpiControllerID  : AlertLogIDType;
+        variable TransactionCount : integer := 0;
 
     begin
         -- Enable logging for SPI Controller and Peripheral
         GetAlertLogID(SpiControllerRec, SpiControllerID);
-        GetAlertLogID(SpiDeviceRecord,  SpiDeviceID);
-        SetLogEnable(SpiControllerID, INFO, TRUE);
-        SetLogEnable(SpiDeviceID    , INFO, TRUE);
+        SetLogEnable(SpiControllerID, DEBUG, TRUE);
 
         -- Test Begins
-        WaitForclock(SpiControllerRec, 2);
+        WaitForclock(SpiControllerRec, 5);
 
         -- Send some words in SPI Mode = 0
         WaitForClock(SpiControllerRec, 5);
         Send(SpiControllerRec, X"AA");
         WaitForClock(SpiControllerRec, 5);
 
-        -- Set SPI Mode = 1 and send some words
-        SetSpiMode(SpiControllerRec, 1);
-        Send(SpiControllerRec, X"AA");
-        WaitForClock(SpiControllerRec, 5);
-
-        -- Set SPI Mode = 2 and send some words
-        SetSpiMode(SpiControllerRec, 2);
-        Send(SpiControllerRec, X"AA");
-        WaitForClock(SpiControllerRec, 5);
-
-         -- Set SPI Mode = 3 and send some words
-         SetSpiMode(SpiControllerRec, 3);
-         Send(SpiControllerRec, X"AA");
-         WaitForClock(SpiControllerRec, 5);
-
+        -- Check some things
+        GetTransactionCount(SpiControllerRec, TransactionCount);
+        AffirmIfEqual(SpiControllerID, TransactionCount, 1,
+                      "Transaction Count");
         -- Test ends
         TestDone <= 1;
         WaitForBarrier(TestDone);
         wait;
     end process SpiControllerTest;
 
+    SpiPeripheralTest : process
+        variable SpiPeripheralId    : AlertLogIDType;
+        variable Received, Expected : std_logic_vector (7 downto 0);
+        variable ReceiveCount       : integer := 0;
+    begin
+    GetAlertLogID(SpiPeripheralRec,  SpiPeripheralId);
+    SetLogEnable(SpiPeripheralId, DEBUG, TRUE);
+    WaitForClock(SpiPeripheralRec, 5);
+
+    -- Test Begins
+    Expected := x"AA";
+    Get(SpiPeripheralRec, Received);
+    AffirmIfEqual(SpiPeripheralID, Received, Expected);
+    -- Test Done
+    WaitForBarrier(TestDone);
+    wait;
+    end process SpiPeripheralTest;
 end Operation1;
 
 configuration TbSpi_Operation1 of TbSpi is

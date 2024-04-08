@@ -69,7 +69,7 @@ architecture TestHarness of TbSpi is
     component TestCtrl
         port(
             SpiControllerRec : inout SpiRecType;
-            SpiDeviceRec     : inout SpiRecType;
+            SpiPeripheralRec : inout SpiRecType;
             Clk              : in    std_logic;
             n_Reset          : in    std_logic
         );

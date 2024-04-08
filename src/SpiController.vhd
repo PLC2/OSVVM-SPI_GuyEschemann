@@ -40,7 +40,7 @@ entity SpiController is
     );
 end entity SpiController;
 
-architecture blocking of SpiController is
+architecture model of SpiController is
 
     ----------------------------------------------------------------------------
     -- Constants
@@ -76,7 +76,7 @@ architecture blocking of SpiController is
     signal OptSclkPeriod        : SpiClkType           :=  SCLK_PERIOD;
 
 begin
-    -- Initialize SPI Controller Clock
+    -- Initialize SPI Controller internal clock
     SpiClk <= not SpiClk after OptSclkPeriod / 2;
     ----------------------------------------------------------------------------
     --  Initialize SPI Controller Entity
@@ -199,7 +199,7 @@ begin
         ControllerTxLoop : loop
             -- Wait for transmit request with lines in idle state
             if Empty(TransmitFifo) then
-                GoIdle(CSEL, PICO);
+                SpiGoIdle(CSEL, PICO);
                 WaitForToggle(TransmitRequestCount);
             else
                 -- Allow TransmitRequestCount to settle
@@ -226,10 +226,10 @@ begin
                 --
                 wait until SpiClk = CPOL and SpiClk'event;
             end loop;
-
+            -- Needs conditional wait dependnig on SPI mode?
             wait until SpiClk /= CPOL and SpiClk'event;
             Increment(TransmitDoneCount);
 
         end loop ControllerTxLoop;
     end process SpiTxHandler;
-end architecture blocking;
+end architecture model;

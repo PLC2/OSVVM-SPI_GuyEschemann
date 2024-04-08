@@ -39,7 +39,7 @@ entity SpiPeripheral is
     );
 end entity SpiPeripheral;
 
-architecture blocking of SpiPeripheral is
+architecture model of SpiPeripheral is
 
     ----------------------------------------------------------------------------
     -- SPI Peripheral Constants
@@ -68,11 +68,10 @@ architecture blocking of SpiPeripheral is
     signal OptSpiMode           : SpiModeType          := SPI_MODE;
     signal CPOL                 : std_logic            := '0';
     signal CPHA                 : std_logic            := '0';
-    signal OddEdgeOut           : boolean              := FALSE;
     signal InOnRise             : boolean              := TRUE;
+    signal OddEdgeOut           : boolean              := FALSE;
 
 begin
-
     ----------------------------------------------------------------------------
     --  Initialize SPI Peripheral Entity
     ----------------------------------------------------------------------------
@@ -204,25 +203,24 @@ begin
 
     begin
         wait for 0 ns;
+        wait until falling_edge(CSEL);
+        SetSpiParams(OptSpiMode, CPOL, CPHA, OddEdgeOut, InOnRise);
         -- Shift in PICO data on SCLK edge per SPI Mode
-        if CSEL = '0' then
+        while CSEL = '0' loop
             if InOnRise then
+                wait until rising_edge(SCLK);
                 RxData := RxData(RxData'high - 1 downto RxData'low) &
-                                 PICO when rising_edge(SCLK);
+                                 PICO;
             else
+                wait until falling_edge(SCLK);
                 RxData := RxData(RxData'high - 1 downto RxData'low) &
-                                PICO when falling_edge(SCLK);
+                                PICO;
             end if;
-        end if;
-        -- Push RX data on CSEL rise / Update SPI Mode on CSEL fall
-        if rising_edge(CSEL) then
-            Push(ReceiveFifo, RxData);
-            Increment(ReceiveCount);
-        elsif falling_edge(CSEL) then
-            SetSpiParams(OptSpiMode, CPOL, CPHA, OutOnOdd, InOnRise);
-        end if;
+        end loop;
+        Push(ReceiveFifo, RxData);
+        Increment(ReceiveCount);
     end process SpiRxHandler;
-
+/*
     SpiTxHandler : process
         variable TxData : std_logic_vector(7 downto 0);
         variable BitIdx : integer;
@@ -246,5 +244,5 @@ begin
             BitIdx := BitIdx - 1;
             wait until SCLK'event;
         end loop;
-    end process SpiTxHandler;
-end architecture blocking;
+    end process SpiTxHandler;*/
+end architecture model;
