@@ -69,7 +69,7 @@ architecture model of SpiController is
     signal OptSpiMode           : SpiModeType          := SPI_MODE;
     signal CPOL                 : std_logic            := '0';
     signal CPHA                 : std_logic            := '0';
-    signal OutOnOdd             : boolean              := FALSE;
+    signal OutOnRise            : boolean              := FALSE;
     signal InOnRise             : boolean              := TRUE;
     -- SPI Clock Signals
     signal SpiClk               : std_logic            := '0';
@@ -187,7 +187,7 @@ begin
     end process TransactionDispatcher;
 
     ----------------------------------------------------------------------------
-    -- SPI Controller Transmit and Receive Functionality
+    -- SPI Controller Transmit Functionality
     ----------------------------------------------------------------------------
     SCLK <= CPOL when CSEL = '1' else SpiClk;
     SpiTxHandler : process
@@ -208,23 +208,24 @@ begin
 
             -- Pop data for TX & propogate any SPI Mode changes
             TxData := Pop(TransmitFifo);
-            SetSpiParams(OptSpiMode, CPOL, CPHA, OutOnOdd, InOnRise);
+            SetSpiParams(OptSpiMode, CPOL, CPHA, OutOnRise, InOnRise);
             Log(ModelID, "SPI Controller TxData: " & to_string(TxData) &
                 ", TransmitRequestCount # " & to_string(TransmitRequestCount),
                 DEBUG);
 
             -- Wait for internal clock to match clock idle polarity
-            wait until SpiClk = CPOL and SpiClk'event;
+            wait until SpiClk = CPOL;
             CSEL <= '0';
             -- Transmit TxData byte bit by bit
             for BitIdx in 7 downto 0 loop
-                PICO     <= TxData(BitIdx) when OutOnOdd;
-                --
-                wait until SpiClk /= CPOL and SpiClk'event;
-                --
-                PICO     <= TxData(BitIdx) when not OutOnOdd;
-                --
-                wait until SpiClk = CPOL and SpiClk'event;
+                if OutOnRise then
+                    wait until rising_edge(SpiClk);
+                else
+                    wait until falling_edge(SpiClk);
+                end if;
+
+                PICO <= TxData(BitIdx);
+
             end loop;
             -- Needs conditional wait dependnig on SPI mode?
             wait until SpiClk /= CPOL and SpiClk'event;
@@ -232,4 +233,28 @@ begin
 
         end loop ControllerTxLoop;
     end process SpiTxHandler;
+    ----------------------------------------------------------------------------
+    -- SPI Controller Receive Functionality
+    ----------------------------------------------------------------------------
+    SpiRxHandler : process
+        variable RxData : std_logic_vector(7 downto 0);
+
+    begin
+        wait for 0 ns;
+        wait until falling_edge(CSEL);
+        -- Shift in POCI data on SCLK edge per SPI Mode
+        while CSEL = '0' loop
+            if InOnRise then
+                wait until rising_edge(SCLK);
+                RxData := RxData(RxData'high - 1 downto RxData'low) &
+                                 POCI;
+            else
+                wait until falling_edge(SCLK);
+                RxData := RxData(RxData'high - 1 downto RxData'low) &
+                                POCI;
+            end if;
+        end loop;
+        Push(ReceiveFifo, RxData);
+        Increment(ReceiveCount);
+    end process SpiRxHandler;
 end architecture model;

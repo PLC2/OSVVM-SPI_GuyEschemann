@@ -78,17 +78,17 @@ package SpiTbPkg is
         signal OptSpiMode     : in  SpiModeType;
         signal CPOL           : out std_logic;
         signal CPHA           : out std_logic;
-        signal OutOnFirstEdge : out boolean;
-        signal InOnRiseEdge   : out boolean
+        signal OutOnRise      : out boolean;
+        signal InOnRise       : out boolean
     );
 
     ----------------------------------------------------------------------------
     -- SPI Parameter Helpers
     ----------------------------------------------------------------------------
-    pure function GetCPOL     (SpiMode : in SpiModeType) return std_logic;
-    pure function GetCPHA     (SpiMode : in SpiModeType) return std_logic;
-    pure function GetInOnRise (SpiMode : in SpiModeType) return boolean;
-    pure function OddEdgeOut  (SpiMode : in SpiModetype) return boolean;
+    pure function GetCPOL      (SpiMode : in SpiModeType) return std_logic;
+    pure function GetCPHA      (SpiMode : in SpiModeType) return std_logic;
+    pure function GetInOnRise  (SpiMode : in SpiModeType) return boolean;
+    pure function GetOutOnRise (SpiMode : in SpiModetype) return boolean;
 
     ----------------------------------------------------------------------------
     -- Convenience Procedures
@@ -131,17 +131,17 @@ package body SpiTbPkg is
     -- SetSpiParams: Helper function for SetSpiMode
     ----------------------------------------------------------------------------
     procedure SetSpiParams(
-        signal OptSpiMode     : in  SpiModeType;
-        signal CPOL           : out std_logic;
-        signal CPHA           : out std_logic;
-        signal OutOnFirstEdge : out boolean;
-        signal InOnRiseEdge   : out boolean
+        signal OptSpiMode : in  SpiModeType;
+        signal CPOL       : out std_logic;
+        signal CPHA       : out std_logic;
+        signal OutOnRise  : out boolean;
+        signal InOnRise   : out boolean
     ) is
     begin
-        CPOL           <= GetCPOL(OptSpiMode);
-        CPHA           <= GetCPHA(OptSpiMode);
-        OutOnFirstEdge <= OddEdgeOut(OptSpiMode);
-        InOnRiseEdge   <= GetInOnRise(OptSpiMode);
+        CPOL      <= GetCPOL(OptSpiMode);
+        CPHA      <= GetCPHA(OptSpiMode);
+        OutOnRise <= GetOutOnRise(OptSpiMode);
+        InOnRise  <= GetInOnRise(OptSpiMode);
     end procedure SetSpiParams;
 
     ----------------------------------------------------------------------------
@@ -177,14 +177,14 @@ package body SpiTbPkg is
     end function GetCPHA;
 
     ----------------------------------------------------------------------------
-    -- OddEdgeOut: Returns true if data out on odd edges
+    -- GetOutOnRise: Returns true if data out on odd edges
     ----------------------------------------------------------------------------
-    pure function OddEdgeOut (SpiMode : in SpiModetype) return boolean is
+    pure function GetOutOnRise (SpiMode : in SpiModetype) return boolean is
         variable retval : boolean := FALSE;
     begin
-        retval := TRUE when  SpiMode = 1 or SpiMode = 3;
+        retval := TRUE when  SpiMode = 1 or SpiMode = 2;
         return retval;
-    end function OddEdgeOut;
+    end function GetOutOnRise;
 
     ----------------------------------------------------------------------------
     -- GetInOnRise: Returns true if data clocked in on SCLK rising edge

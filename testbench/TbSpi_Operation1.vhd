@@ -79,7 +79,7 @@ begin
     begin
         -- Enable logging for SPI Controller and Peripheral
         GetAlertLogID(SpiControllerRec, SpiControllerID);
-        SetLogEnable(SpiControllerID, DEBUG, TRUE);
+        SetLogEnable(SpiControllerID, INFO, TRUE);
 
         -- Test Begins
         WaitForclock(SpiControllerRec, 5);
@@ -105,7 +105,7 @@ begin
         variable ReceiveCount       : integer := 0;
     begin
     GetAlertLogID(SpiPeripheralRec,  SpiPeripheralId);
-    SetLogEnable(SpiPeripheralId, DEBUG, TRUE);
+    SetLogEnable(SpiPeripheralId, INFO, TRUE);
     WaitForClock(SpiPeripheralRec, 5);
 
     -- Test Begins

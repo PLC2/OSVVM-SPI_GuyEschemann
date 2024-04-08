@@ -69,7 +69,7 @@ architecture model of SpiPeripheral is
     signal CPOL                 : std_logic            := '0';
     signal CPHA                 : std_logic            := '0';
     signal InOnRise             : boolean              := TRUE;
-    signal OddEdgeOut           : boolean              := FALSE;
+    signal OutOnRise            : boolean              := FALSE;
 
 begin
     ----------------------------------------------------------------------------
@@ -196,7 +196,7 @@ begin
     end process TransactionDispatcher;
 
     ----------------------------------------------------------------------------
-    -- SPI Peripheral Receive and Transmit Functionality
+    -- SPI Peripheral Receive Functionality
     ----------------------------------------------------------------------------
     SpiRxHandler : process
         variable RxData : std_logic_vector(7 downto 0);
@@ -204,7 +204,7 @@ begin
     begin
         wait for 0 ns;
         wait until falling_edge(CSEL);
-        SetSpiParams(OptSpiMode, CPOL, CPHA, OddEdgeOut, InOnRise);
+        SetSpiParams(OptSpiMode, CPOL, CPHA, OutOnRise, InOnRise);
         -- Shift in PICO data on SCLK edge per SPI Mode
         while CSEL = '0' loop
             if InOnRise then
@@ -220,29 +220,33 @@ begin
         Push(ReceiveFifo, RxData);
         Increment(ReceiveCount);
     end process SpiRxHandler;
-/*
+
+    ----------------------------------------------------------------------------
+    -- SPI Peripheral Transmit Functionality
+    ----------------------------------------------------------------------------
     SpiTxHandler : process
         variable TxData : std_logic_vector(7 downto 0);
         variable BitIdx : integer;
 
     begin
-        if Empty(TransmitFifo) then
-            WaitForToggle(TransmitRequestCount);
-        else
         wait for 0 ns;
+        wait until CSEL = '0';
+        if not Empty(TransmitFifo) then
+            TxData := Pop(TransmitFifo);
+        else
+            TxData := (others => '0');
         end if;
 
-        TxData := Pop(TransmitFifo);
-        BitIdx := TxData'length;
-        wait until CSEL = '0';
-        if not OddEdgeOut then
-            wait until SCLK'event;
-        end if;
+        BitIdx := TxData'length - 1;
+
         while CSEL = '0' and BitIdx >= 0 loop
-            wait until SCLK'event;
+            if OutOnRise then
+                wait until rising_edge(SCLK);
+            else
+                wait until falling_edge(SCLK);
+            end if;
             POCI   <= TxData(BitIdx);
             BitIdx := BitIdx - 1;
-            wait until SCLK'event;
         end loop;
-    end process SpiTxHandler;*/
+    end process SpiTxHandler;
 end architecture model;
