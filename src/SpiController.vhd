@@ -214,18 +214,17 @@ begin
                 DEBUG);
 
             -- Wait for internal clock to match clock idle polarity
-            wait until SpiClk = CPOL;
+            wait until SpiClk = CPOL and SpiClk'event;
             CSEL <= '0';
             -- Transmit TxData byte bit by bit
             for BitIdx in 7 downto 0 loop
-                if OutOnRise then
-                    wait until rising_edge(SpiClk);
-                else
-                    wait until falling_edge(SpiClk);
-                end if;
-                PICO <= TxData(BitIdx);
+                PICO <= TxData(BitIdx) when OptSpiMode = 0 or OptSpiMode = 2;
+                wait until SpiClk = CPOL and SCLK'event;
+                PICO <= TxData(BitIdx) when OptSpiMode = 1 or OptSpiMode = 3;
             end loop;
-            wait until SpiClk /= CPOL and SpiClk'event;
+
+            PICO <= '0';
+            wait until SpiClk /= CPOL and SCLK'event;
             Increment(TransmitDoneCount);
 
         end loop ControllerTxLoop;

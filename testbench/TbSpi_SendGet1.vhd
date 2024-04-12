@@ -31,9 +31,9 @@
 --  limitations under the License.
 --
 
-architecture Operation1 of TestCtrl is
+architecture SendGet1 of TestCtrl is
 
-    signal TestDone : integer_barrier := 1;
+    signal TestDone   : integer_barrier := 1;
     signal TbID     : AlertLogIDType;
 
 begin
@@ -130,7 +130,7 @@ begin
     SpiPeripheralTest : process
         variable SpiPeripheralId    : AlertLogIDType;
         variable Received, Expected : std_logic_vector (7 downto 0);
-        variable ReceiveCount       : integer := 0;
+        variable TransactionCount   : integer := 0;
     begin
     GetAlertLogID(SpiPeripheralRec,  SpiPeripheralId);
     SetLogEnable(SpiPeripheralId, INFO, TRUE);
@@ -151,8 +151,8 @@ begin
     AffirmIfEqual(SpiPeripheralID, Received, Expected);
     end loop;
 
-    --GetTransactionCount(SpiPeripherialRec, ReceiveCount);
-    --AffirmIfEqual(SpiPeripheralId, ReceiveCount, 5, "Transaction Count");
+    GetTransactionCount(SpiPeripheralRec, TransactionCount);
+    AffirmIfEqual(SpiPeripheralId, TransactionCount, 5, "Transaction Count");
 
     -- Receive sequence 2
     for i in 1 to 5 loop
@@ -206,19 +206,19 @@ begin
     AffirmIfEqual(SpiPeripheralID, Received, Expected);
     end loop;
 
-    --GetReceiveCount(SpiPeripherialRec, TransactionCount);
-    --AffirmIfEqual(SpiPeripheralId, ReceiveCount, 20, "Receive Count");
+    GetTransactionCount(SpiPeripheralRec, TransactionCount);
+    AffirmIfEqual(SpiPeripheralId, TransactionCount, "Transaction Count");
 
     -- Test Done
     WaitForBarrier(TestDone);
     wait;
     end process SpiPeripheralTest;
-end Operation1;
+end SendGet1;
 
-configuration TbSpi_Operation1 of TbSpi is
+configuration TbSpi_SendGet1 of TbSpi is
     for TestHarness
         for TestCtrl_1 : TestCtrl
-            use entity work.TestCtrl(Operation1);
+            use entity work.TestCtrl(SendGet1);
         end for;
     end for;
-end TbSpi_Operation1;
+end TbSpi_SendGet1;
