@@ -209,13 +209,11 @@ begin
         while CSEL = '0' loop
             if InOnRise then
                 wait until rising_edge(SCLK);
-                RxData := RxData(RxData'high - 1 downto RxData'low) &
-                                 PICO;
             else
                 wait until falling_edge(SCLK);
-                RxData := RxData(RxData'high - 1 downto RxData'low) &
-                                PICO;
             end if;
+            RxData := RxData(RxData'high - 1 downto RxData'low) &
+                                PICO;
         end loop;
         Push(ReceiveFifo, RxData);
         Increment(ReceiveCount);

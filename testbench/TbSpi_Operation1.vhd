@@ -44,13 +44,13 @@ begin
     ControlProc : process
     begin
         -- Initialization of test
-        SetTestName("TbSpi_Operation1");
+        SetTestName("TbSpi_SendGet1");
         SetLogEnable(PASSED, TRUE);
         TbID <= GetAlertLogID("TB");
 
         -- Wait for testbench initialization
         wait for 0 ns; wait for 0 ns;
-        TranscriptOpen(OSVVM_RESULTS_DIR & "TbSpi_Operation1.txt");
+        TranscriptOpen(OSVVM_RESULTS_DIR & "TbSpi_SendGet1.txt");
         SetTranscriptMirror(TRUE) ;
 
         -- Wait for Design Reset
@@ -82,23 +82,51 @@ begin
         SetLogEnable(SpiControllerID, INFO, TRUE);
 
         -- Test Begins
-        WaitForclock(SpiControllerRec, 5);
+        WaitForClock(SpiControllerRec, 2);
 
-        -- Send some words in SPI Mode = 0
-        WaitForClock(SpiControllerRec, 5);
-        Send(SpiControllerRec, X"AA");
-        WaitForClock(SpiControllerRec, 5);
-
-        -- Check some things
+        --Send sequence 1
+        Send(SpiControllerRec, X"50");
+        Send(SpiControllerRec, X"51");
+        Send(SpiControllerRec, X"52");
+        Send(SpiControllerRec, X"53");
+        Send(SpiControllerRec, X"54");
         GetTransactionCount(SpiControllerRec, TransactionCount);
-        AffirmIfEqual(SpiControllerID, TransactionCount, 1,
+        AffirmIfEqual(SpiControllerID, TransactionCount, 5,
                       "Transaction Count");
+
+        --Send sequence 2
+        Send(SpiControllerRec, X"60");
+        Send(SpiControllerRec, X"61");
+        Send(SpiControllerRec, X"62");
+        Send(SpiControllerRec, X"63");
+        Send(SpiControllerRec, X"64");
+
+        --Send sequence 3
+        Send(SpiControllerRec, X"70");
+        Send(SpiControllerRec, X"71");
+        Send(SpiControllerRec, X"72");
+        Send(SpiControllerRec, X"73");
+        Send(SpiControllerRec, X"74");
+
+        --Send sequence 4
+        Send(SpiControllerRec, X"80");
+        Send(SpiControllerRec, X"81");
+        Send(SpiControllerRec, X"82");
+        Send(SpiControllerRec, X"83");
+        Send(SpiControllerRec, X"84");
+
+        GetTransactionCount(SpiControllerRec, TransactionCount);
+        AffirmIfEqual(SpiControllerID, TransactionCount, 20,
+                      "Transaction Count");
+
         -- Test ends
-        TestDone <= 1;
         WaitForBarrier(TestDone);
         wait;
     end process SpiControllerTest;
 
+    ------------------------------------------------------------
+    -- SpiControllerTest: Simple
+    ------------------------------------------------------------
     SpiPeripheralTest : process
         variable SpiPeripheralId    : AlertLogIDType;
         variable Received, Expected : std_logic_vector (7 downto 0);
@@ -106,12 +134,81 @@ begin
     begin
     GetAlertLogID(SpiPeripheralRec,  SpiPeripheralId);
     SetLogEnable(SpiPeripheralId, INFO, TRUE);
-    WaitForClock(SpiPeripheralRec, 5);
+    WaitForClock(SpiPeripheralRec, 2);
 
     -- Test Begins
-    Expected := x"AA";
+
+    -- Receive sequence 1
+    for i in 1 to 5 loop
+        case i is
+          when 1 =>  Expected := (X"50");
+          when 2 =>  Expected := (X"51");
+          when 3 =>  Expected := (X"52");
+          when 4 =>  Expected := (X"53");
+          when 5 =>  Expected := (X"54");
+        end case ;
     Get(SpiPeripheralRec, Received);
     AffirmIfEqual(SpiPeripheralID, Received, Expected);
+    end loop;
+
+    --GetTransactionCount(SpiPeripherialRec, ReceiveCount);
+    --AffirmIfEqual(SpiPeripheralId, ReceiveCount, 5, "Transaction Count");
+
+    -- Receive sequence 2
+    for i in 1 to 5 loop
+        case i is
+          when 1 =>  Expected := (X"50");
+          when 2 =>  Expected := (X"51");
+          when 3 =>  Expected := (X"52");
+          when 4 =>  Expected := (X"53");
+          when 5 =>  Expected := (X"54");
+        end case ;
+    Get(SpiPeripheralRec, Received);
+    AffirmIfEqual(SpiPeripheralID, Received, Expected);
+    end loop;
+
+    -- Receive sequence 3
+    for i in 1 to 5 loop
+        case i is
+          when 1 =>  Expected := (X"60");
+          when 2 =>  Expected := (X"61");
+          when 3 =>  Expected := (X"62");
+          when 4 =>  Expected := (X"63");
+          when 5 =>  Expected := (X"64");
+        end case ;
+    Get(SpiPeripheralRec, Received);
+    AffirmIfEqual(SpiPeripheralID, Received, Expected);
+    end loop;
+
+    -- Receive sequence 4
+    for i in 1 to 5 loop
+        case i is
+          when 1 =>  Expected := (X"70");
+          when 2 =>  Expected := (X"71");
+          when 3 =>  Expected := (X"72");
+          when 4 =>  Expected := (X"73");
+          when 5 =>  Expected := (X"74");
+        end case ;
+    Get(SpiPeripheralRec, Received);
+    AffirmIfEqual(SpiPeripheralID, Received, Expected);
+    end loop;
+
+    -- Receive sequence 5
+    for i in 1 to 5 loop
+        case i is
+          when 1 =>  Expected := (X"80");
+          when 2 =>  Expected := (X"81");
+          when 3 =>  Expected := (X"82");
+          when 4 =>  Expected := (X"83");
+          when 5 =>  Expected := (X"84");
+        end case ;
+    Get(SpiPeripheralRec, Received);
+    AffirmIfEqual(SpiPeripheralID, Received, Expected);
+    end loop;
+
+    --GetReceiveCount(SpiPeripherialRec, TransactionCount);
+    --AffirmIfEqual(SpiPeripheralId, ReceiveCount, 20, "Receive Count");
+
     -- Test Done
     WaitForBarrier(TestDone);
     wait;

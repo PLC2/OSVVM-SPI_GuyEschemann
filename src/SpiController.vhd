@@ -223,11 +223,8 @@ begin
                 else
                     wait until falling_edge(SpiClk);
                 end if;
-
                 PICO <= TxData(BitIdx);
-
             end loop;
-            -- Needs conditional wait dependnig on SPI mode?
             wait until SpiClk /= CPOL and SpiClk'event;
             Increment(TransmitDoneCount);
 
@@ -246,13 +243,10 @@ begin
         while CSEL = '0' loop
             if InOnRise then
                 wait until rising_edge(SCLK);
-                RxData := RxData(RxData'high - 1 downto RxData'low) &
-                                 POCI;
             else
                 wait until falling_edge(SCLK);
-                RxData := RxData(RxData'high - 1 downto RxData'low) &
-                                POCI;
             end if;
+            RxData := RxData(RxData'high - 1 downto RxData'low) & POCI;
         end loop;
         Push(ReceiveFifo, RxData);
         Increment(ReceiveCount);
