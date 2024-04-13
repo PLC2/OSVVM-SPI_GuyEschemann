@@ -35,7 +35,7 @@ entity SpiPeripheral is
         SCLK     : in     std_logic;
         CSEL     : in     std_logic;
         PICO     : in     std_logic;
-        POCI     : out    std_logic
+        POCI     : out    std_logic := '0'
     );
 end entity SpiPeripheral;
 
@@ -198,7 +198,7 @@ begin
     ----------------------------------------------------------------------------
     -- SPI Peripheral Receive Functionality
     ----------------------------------------------------------------------------
-    SpiRxHandler : process
+    /*SpiRxHandler : process
         variable RxData : std_logic_vector(7 downto 0);
 
     begin
@@ -207,13 +207,10 @@ begin
         SetSpiParams(OptSpiMode, CPOL, CPHA, OutOnRise, InOnRise);
         -- Shift in PICO data on SCLK edge per SPI Mode
         while CSEL = '0' loop
-            if InOnRise then
-                wait until rising_edge(SCLK);
-            else
-                wait until falling_edge(SCLK);
+            if OptSpiMode = 0 or OptSpiMode = 2 then
+                RxData := RxData(RxData'high - 1 downto RxData'low) &
+                PICO when rising_edge(SCLK);
             end if;
-            RxData := RxData(RxData'high - 1 downto RxData'low) &
-                                PICO;
         end loop;
         Push(ReceiveFifo, RxData);
         Increment(ReceiveCount);
@@ -246,5 +243,5 @@ begin
             POCI   <= TxData(BitIdx);
             BitIdx := BitIdx - 1;
         end loop;
-    end process SpiTxHandler;
+    end process SpiTxHandler;*/
 end architecture model;

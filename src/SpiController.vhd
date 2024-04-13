@@ -35,7 +35,7 @@ entity SpiController is
         TransRec : inout   SpiRecType;
         SCLK     : out     std_logic;
         CSEL     : out     std_logic;
-        PICO     : out     std_logic;
+        PICO     : out     std_logic := '0';
         POCI     : in      std_logic
     );
 end entity SpiController;
@@ -199,7 +199,9 @@ begin
         ControllerTxLoop : loop
             -- Wait for transmit request with lines in idle state
             if Empty(TransmitFifo) then
-                SpiGoIdle(CSEL, PICO);
+                CSEL <= '1';
+                --PICO <= '0';
+                wait until SpiClk'event;
                 WaitForToggle(TransmitRequestCount);
             else
                 -- Allow TransmitRequestCount to settle
@@ -216,15 +218,22 @@ begin
             -- Wait for internal clock to match clock idle polarity
             wait until SpiClk = CPOL and SpiClk'event;
             CSEL <= '0';
+
             -- Transmit TxData byte bit by bit
             for BitIdx in 7 downto 0 loop
                 PICO <= TxData(BitIdx) when OptSpiMode = 0 or OptSpiMode = 2;
-                wait until SpiClk = CPOL and SCLK'event;
+
+                if OptSpiMode = 0 or OptSpiMode = 3 then
+                    wait until falling_edge(SpiClk);
+                else
+                    wait until rising_edge(SpiClk);
+                end if;
+
                 PICO <= TxData(BitIdx) when OptSpiMode = 1 or OptSpiMode = 3;
             end loop;
 
             PICO <= '0';
-            wait until SpiClk /= CPOL and SCLK'event;
+            wait until SpiClk /= CPOL and SpiClk'event;
             Increment(TransmitDoneCount);
 
         end loop ControllerTxLoop;
@@ -232,7 +241,7 @@ begin
     ----------------------------------------------------------------------------
     -- SPI Controller Receive Functionality
     ----------------------------------------------------------------------------
-    SpiRxHandler : process
+    /*SpiRxHandler : process
         variable RxData : std_logic_vector(7 downto 0);
 
     begin
@@ -249,5 +258,5 @@ begin
         end loop;
         Push(ReceiveFifo, RxData);
         Increment(ReceiveCount);
-    end process SpiRxHandler;
+    end process SpiRxHandler;*/
 end architecture model;

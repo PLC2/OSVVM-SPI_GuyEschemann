@@ -34,6 +34,7 @@
 architecture SendGet1 of TestCtrl is
 
     signal TestDone   : integer_barrier := 1;
+    signal TestActive : boolean         := TRUE;
     signal TbID     : AlertLogIDType;
 
 begin
@@ -120,6 +121,7 @@ begin
                       "Transaction Count");
 
         -- Test ends
+        TestActive <= FALSE;
         WaitForBarrier(TestDone);
         wait;
     end process SpiControllerTest;

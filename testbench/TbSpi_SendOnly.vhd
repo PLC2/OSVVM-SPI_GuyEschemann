@@ -84,10 +84,24 @@ begin
         -- Test Begins
         WaitForClock(SpiControllerRec, 2);
 
-        --Send sequence 1
-        Send(SpiControllerRec, X"50");
+        --SPI Mode 0: Send
+        Send(SpiControllerRec, X"AA");
+        WaitForClock(SpiControllerRec, 2);
 
-        WaitForClock(SpiControllerRec, 5);
+        --SPI Mode 1: Send
+        SetSpiMode(SpiControllerRec, 1);
+        Send(SpiControllerRec, X"AA");
+        WaitForClock(SpiControllerRec, 2);
+
+        --SPI Mode 2: Send
+        SetSpiMode(SpiControllerRec, 2);
+        Send(SpiControllerRec, X"AA");
+        WaitForClock(SpiControllerRec, 1);
+
+        --SPI Mode 3: Send
+        SetSpiMode(SpiControllerRec, 3);
+        Send(SpiControllerRec, X"AA");
+        WaitForClock(SpiControllerRec, 1);
 
 
         -- Test ends
