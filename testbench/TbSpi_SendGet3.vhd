@@ -31,7 +31,7 @@
 --  limitations under the License.
 --
 
-architecture SendGet1 of TestCtrl is
+architecture SendGet3 of TestCtrl is
 
     signal TestDone   : integer_barrier := 1;
     signal TestActive : boolean         := TRUE;
@@ -212,12 +212,12 @@ begin
     WaitForBarrier(TestDone);
     wait;
     end process SpiPeripheralTest;
-end SendGet1;
+end SendGet3;
 
-configuration TbSpi_SendGet1 of TbSpi is
+configuration TbSpi_SendGet3 of TbSpi is
     for TestHarness
         for TestCtrl_1 : TestCtrl
-            use entity work.TestCtrl(SendGet1);
+            use entity work.TestCtrl(SendGet3);
         end for;
     end for;
-end TbSpi_SendGet1;
+end TbSpi_SendGet3;
