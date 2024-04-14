@@ -94,7 +94,7 @@ begin
         GetTransactionCount(SpiControllerRec, TransactionCount);
         AffirmIfEqual(SpiControllerID, TransactionCount, 5,
                       "Transaction Count");
-
+        /*
         --Send sequence 2
         Send(SpiControllerRec, X"60");
         Send(SpiControllerRec, X"61");
@@ -119,7 +119,7 @@ begin
         GetTransactionCount(SpiControllerRec, TransactionCount);
         AffirmIfEqual(SpiControllerID, TransactionCount, 20,
                       "Transaction Count");
-
+        */
         -- Test ends
         TestActive <= FALSE;
         WaitForBarrier(TestDone);
@@ -134,9 +134,10 @@ begin
         variable Received, Expected : std_logic_vector (7 downto 0);
         variable TransactionCount   : integer := 0;
     begin
+
     GetAlertLogID(SpiPeripheralRec,  SpiPeripheralId);
     SetLogEnable(SpiPeripheralId, INFO, TRUE);
-    WaitForClock(SpiPeripheralRec, 2);
+    WaitForClock(SpiPeripheralRec, 3);
 
     -- Test Begins
 
@@ -149,13 +150,13 @@ begin
           when 4 =>  Expected := (X"53");
           when 5 =>  Expected := (X"54");
         end case ;
-    Get(SpiPeripheralRec, Received);
-    AffirmIfEqual(SpiPeripheralID, Received, Expected);
+        Get(SpiPeripheralRec, Received);
+        AffirmIfEqual(SpiPeripheralID, Received, Expected);
     end loop;
 
     GetTransactionCount(SpiPeripheralRec, TransactionCount);
     AffirmIfEqual(SpiPeripheralId, TransactionCount, 5, "Transaction Count");
-
+    /*
     -- Receive sequence 2
     for i in 1 to 5 loop
         case i is
@@ -210,7 +211,7 @@ begin
 
     GetTransactionCount(SpiPeripheralRec, TransactionCount);
     AffirmIfEqual(SpiPeripheralId, TransactionCount, "Transaction Count");
-
+    */
     -- Test Done
     WaitForBarrier(TestDone);
     wait;

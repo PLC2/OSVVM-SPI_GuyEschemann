@@ -77,9 +77,7 @@ package SpiTbPkg is
     procedure SetSpiParams(
         signal OptSpiMode     : in  SpiModeType;
         signal CPOL           : out std_logic;
-        signal CPHA           : out std_logic;
-        signal OutOnRise      : out boolean;
-        signal InOnRise       : out boolean
+        signal CPHA           : out std_logic
     );
 
     ----------------------------------------------------------------------------
@@ -87,16 +85,6 @@ package SpiTbPkg is
     ----------------------------------------------------------------------------
     pure function GetCPOL      (SpiMode : in SpiModeType) return std_logic;
     pure function GetCPHA      (SpiMode : in SpiModeType) return std_logic;
-    pure function GetInOnRise  (SpiMode : in SpiModeType) return boolean;
-    pure function GetOutOnRise (SpiMode : in SpiModetype) return boolean;
-
-    ----------------------------------------------------------------------------
-    -- Convenience Procedures
-    ----------------------------------------------------------------------------
-    procedure SpiGoIdle(
-        signal CSEL : out std_logic;
-        signal PICO : out std_logic
-        );
 
 end SpiTbPkg;
 
@@ -133,28 +121,12 @@ package body SpiTbPkg is
     procedure SetSpiParams(
         signal OptSpiMode : in  SpiModeType;
         signal CPOL       : out std_logic;
-        signal CPHA       : out std_logic;
-        signal OutOnRise  : out boolean;
-        signal InOnRise   : out boolean
+        signal CPHA       : out std_logic
     ) is
     begin
         CPOL      <= GetCPOL(OptSpiMode);
         CPHA      <= GetCPHA(OptSpiMode);
-        OutOnRise <= GetOutOnRise(OptSpiMode);
-        InOnRise  <= GetInOnRise(OptSpiMode);
     end procedure SetSpiParams;
-
-    ----------------------------------------------------------------------------
-    -- GoIdle:
-    ----------------------------------------------------------------------------
-    procedure SpiGoIdle(
-        signal CSEL : out std_logic;
-        signal PICO : out std_logic
-        ) is
-    begin
-        CSEL <= '1';
-        PICO <= '0';
-    end procedure SpiGoIdle;
 
     ----------------------------------------------------------------------------
     -- GetCPOL: Helper function for SetSpiMode returns CPOL value
@@ -176,23 +148,4 @@ package body SpiTbPkg is
         return retval;
     end function GetCPHA;
 
-    ----------------------------------------------------------------------------
-    -- GetOutOnRise: Returns true if data out on odd edges
-    ----------------------------------------------------------------------------
-    pure function GetOutOnRise (SpiMode : in SpiModetype) return boolean is
-        variable retval : boolean := FALSE;
-    begin
-        retval := TRUE when  SpiMode = 1 or SpiMode = 2;
-        return retval;
-    end function GetOutOnRise;
-
-    ----------------------------------------------------------------------------
-    -- GetInOnRise: Returns true if data clocked in on SCLK rising edge
-    ----------------------------------------------------------------------------
-    pure function GetInOnRise (SpiMode : in SpiModeType) return boolean is
-        variable retval : boolean := FALSE;
-    begin
-        retval := TRUE when SpiMode = 0 or SpiMode = 3 ;
-        return retval;
-    end function GetInOnRise;
 end SpiTbPkg;

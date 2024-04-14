@@ -68,8 +68,6 @@ architecture model of SpiPeripheral is
     signal OptSpiMode           : SpiModeType          := SPI_MODE;
     signal CPOL                 : std_logic            := '0';
     signal CPHA                 : std_logic            := '0';
-    signal InOnRise             : boolean              := TRUE;
-    signal OutOnRise            : boolean              := FALSE;
 
 begin
     ----------------------------------------------------------------------------
@@ -198,28 +196,42 @@ begin
     ----------------------------------------------------------------------------
     -- SPI Peripheral Receive Functionality
     ----------------------------------------------------------------------------
-    /*SpiRxHandler : process
-        variable RxData : std_logic_vector(7 downto 0);
+    SpiRxHandler : process
+        variable RxData : std_logic_vector(7 downto 0) := (others => '0');
+        variable BitCnt : integer := 0;
 
     begin
         wait for 0 ns;
-        wait until falling_edge(CSEL);
-        SetSpiParams(OptSpiMode, CPOL, CPHA, OutOnRise, InOnRise);
-        -- Shift in PICO data on SCLK edge per SPI Mode
-        while CSEL = '0' loop
-            if OptSpiMode = 0 or OptSpiMode = 2 then
+
+        PeripheralRxLoop : loop
+            wait until falling_edge(CSEL);
+
+            -- SPI Mode: Propogate SPI Mode changes
+            SetSpiParams(OptSpiMode, CPOL, CPHA);
+
+            -- Clock in bits while CSEL low
+            while CSEL = '0' and BitCnt < RxData'length - 1 loop
+                if OptSpiMode = 0 or OptSpiMode = 3 then
+                    wait until falling_edge(SCLK);
+                else
+                    wait until falling_edge(SCLK);
+                end if;
+
                 RxData := RxData(RxData'high - 1 downto RxData'low) &
-                PICO when rising_edge(SCLK);
-            end if;
-        end loop;
-        Push(ReceiveFifo, RxData);
-        Increment(ReceiveCount);
+                PICO;
+                BitCnt := BitCnt + 1; -- Counter feels lazy but *shrug*
+            end loop;
+
+            Push(ReceiveFifo, RxData);
+            Increment(ReceiveCount);
+        end loop PeripheralRxLoop;
+
     end process SpiRxHandler;
 
     ----------------------------------------------------------------------------
     -- SPI Peripheral Transmit Functionality
     ----------------------------------------------------------------------------
-    SpiTxHandler : process
+    /*SpiTxHandler : process
         variable TxData : std_logic_vector(7 downto 0);
         variable BitIdx : integer;
 

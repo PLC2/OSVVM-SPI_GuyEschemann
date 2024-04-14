@@ -69,8 +69,6 @@ architecture model of SpiController is
     signal OptSpiMode           : SpiModeType          := SPI_MODE;
     signal CPOL                 : std_logic            := '0';
     signal CPHA                 : std_logic            := '0';
-    signal OutOnRise            : boolean              := FALSE;
-    signal InOnRise             : boolean              := TRUE;
     -- SPI Clock Signals
     signal SpiClk               : std_logic            := '0';
     signal OptSclkPeriod        : SpiClkType           :=  SCLK_PERIOD;
@@ -189,7 +187,9 @@ begin
     ----------------------------------------------------------------------------
     -- SPI Controller Transmit Functionality
     ----------------------------------------------------------------------------
+
     SCLK <= CPOL when CSEL = '1' else SpiClk;
+
     SpiTxHandler : process
         variable TxData      : std_logic_vector(7 downto 0);
 
@@ -197,10 +197,9 @@ begin
         wait for 0 ns;
 
         ControllerTxLoop : loop
-            -- Wait for transmit request with lines in idle state
+            -- Idle Condition
             if Empty(TransmitFifo) then
                 CSEL <= '1';
-                --PICO <= '0';
                 wait until SpiClk'event;
                 WaitForToggle(TransmitRequestCount);
             else
@@ -208,14 +207,16 @@ begin
                 wait for 0 ns;
             end if;
 
-            -- Pop data for TX & propogate any SPI Mode changes
+            -- TX Data: Pop and log
             TxData := Pop(TransmitFifo);
-            SetSpiParams(OptSpiMode, CPOL, CPHA, OutOnRise, InOnRise);
             Log(ModelID, "SPI Controller TxData: " & to_string(TxData) &
                 ", TransmitRequestCount # " & to_string(TransmitRequestCount),
                 DEBUG);
 
-            -- Wait for internal clock to match clock idle polarity
+            -- SPI Mode: Propogate any SPI Mode changes
+            SetSpiParams(OptSpiMode, CPOL, CPHA);
+
+            -- SCLK: Wait for correct SpiClk phase before engaging CSEL
             wait until SpiClk = CPOL and SpiClk'event;
             CSEL <= '0';
 
