@@ -209,6 +209,7 @@ begin
 
             -- SPI Mode: Propogate SPI Mode changes
             SetSpiParams(OptSpiMode, CPOL, CPHA);
+            RxData := (others => '0');
 
             -- Clock in bits while CSEL low
             while CSEL = '0' and BitCnt <= RxData'length - 1 loop

@@ -121,6 +121,7 @@ begin
         AffirmIfEqual(SpiControllerID, TransactionCount,
                       20,
                       "Transaction Count");
+          Send(SpiControllerRec, X"50");
 
         -- Test ends
         TestActive <= FALSE;
@@ -207,7 +208,9 @@ begin
         when 5 =>  Expected := (X"84");
         end case ;
     end loop;
-
+        Expected := X"50";
+        Get(SpiPeripheralRec, Received);
+        AffirmIfEqual(SpiPeripheralID, Received, Expected);
     -- Test Done
     WaitForBarrier(TestDone);
     wait;
