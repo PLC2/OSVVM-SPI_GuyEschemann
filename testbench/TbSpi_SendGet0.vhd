@@ -45,13 +45,13 @@ begin
     ControlProc : process
     begin
         -- Initialization of test
-        SetTestName("TbSpi_SendGet1");
+        SetTestName("TbSpi_SendGet0");
         SetLogEnable(PASSED, TRUE);
         TbID <= GetAlertLogID("TB");
 
         -- Wait for testbench initialization
         wait for 0 ns; wait for 0 ns;
-        TranscriptOpen(OSVVM_RESULTS_DIR & "TbSpi_SendGet1.txt");
+        TranscriptOpen(OSVVM_RESULTS_DIR & "TbSpi_SendGet0.txt");
         SetTranscriptMirror(TRUE) ;
 
         -- Wait for Design Reset
@@ -84,7 +84,7 @@ begin
         WaitForClock(SpiControllerRec, 2);
 
         -- Test Begins
-        SetSpiMode(SpiControllerRec, 1);
+
         --Send sequence 1
         Send(SpiControllerRec, X"50");
         Send(SpiControllerRec, X"51");
@@ -144,7 +144,7 @@ begin
     WaitForClock(SpiPeripheralRec, 2);
 
     -- Test Begins
-    SetSpiMode(SpiPeripheralRec, 1);
+
     -- Receive sequence 1
     for i in 1 to 5 loop
         case i is
