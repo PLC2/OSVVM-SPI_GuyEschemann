@@ -198,12 +198,13 @@ begin
     ----------------------------------------------------------------------------
     SpiRxHandler : process
         variable RxData : std_logic_vector(7 downto 0) := (others => '0');
-        variable BitCnt : integer := 0;
+        variable BitCnt : integer;
 
     begin
         wait for 0 ns;
 
         PeripheralRxLoop : loop
+            BitCnt := 0;
             wait until falling_edge(CSEL);
 
             -- SPI Mode: Propogate SPI Mode changes

@@ -35,7 +35,7 @@ entity SpiController is
         TransRec : inout   SpiRecType;
         SCLK     : out     std_logic;
         CSEL     : out     std_logic;
-        PICO     : out     std_logic := '0';
+        PICO     : out     std_logic;
         POCI     : in      std_logic
     );
 end entity SpiController;
@@ -200,7 +200,6 @@ begin
             -- Idle Condition
             if Empty(TransmitFifo) then
                 CSEL <= '1';
-                wait until SpiClk'event;
                 WaitForToggle(TransmitRequestCount);
             else
                 -- Allow TransmitRequestCount to settle
@@ -236,6 +235,8 @@ begin
             PICO <= '0';
             wait until SpiClk /= CPOL and SpiClk'event;
             Increment(TransmitDoneCount);
+            CSEL <= '1';
+                wait until SpiClk'event;
 
         end loop ControllerTxLoop;
     end process SpiTxHandler;

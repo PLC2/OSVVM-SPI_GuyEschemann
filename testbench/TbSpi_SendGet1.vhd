@@ -59,8 +59,8 @@ begin
         ClearAlerts;
 
         -- Wait for test to finish
-        WaitForBarrier(TestDone, 10 ms);
-        AlertIf(now >= 10 ms, "Test finished due to timeout");
+        WaitForBarrier(TestDone, 50 ms);
+        AlertIf(now >= 50 ms, "Test finished due to timeout");
         AlertIf(GetAffirmCount < 1, "Test is not Self-Checking");
 
         TranscriptClose;
@@ -94,7 +94,7 @@ begin
         GetTransactionCount(SpiControllerRec, TransactionCount);
         AffirmIfEqual(SpiControllerID, TransactionCount, 5,
                       "Transaction Count");
-        /*
+
         --Send sequence 2
         Send(SpiControllerRec, X"60");
         Send(SpiControllerRec, X"61");
@@ -119,7 +119,7 @@ begin
         GetTransactionCount(SpiControllerRec, TransactionCount);
         AffirmIfEqual(SpiControllerID, TransactionCount, 20,
                       "Transaction Count");
-        */
+
         -- Test ends
         TestActive <= FALSE;
         WaitForBarrier(TestDone);
@@ -156,21 +156,8 @@ begin
 
     GetTransactionCount(SpiPeripheralRec, TransactionCount);
     AffirmIfEqual(SpiPeripheralId, TransactionCount, 5, "Transaction Count");
-    /*
+    
     -- Receive sequence 2
-    for i in 1 to 5 loop
-        case i is
-          when 1 =>  Expected := (X"50");
-          when 2 =>  Expected := (X"51");
-          when 3 =>  Expected := (X"52");
-          when 4 =>  Expected := (X"53");
-          when 5 =>  Expected := (X"54");
-        end case ;
-    Get(SpiPeripheralRec, Received);
-    AffirmIfEqual(SpiPeripheralID, Received, Expected);
-    end loop;
-
-    -- Receive sequence 3
     for i in 1 to 5 loop
         case i is
           when 1 =>  Expected := (X"60");
@@ -183,7 +170,7 @@ begin
     AffirmIfEqual(SpiPeripheralID, Received, Expected);
     end loop;
 
-    -- Receive sequence 4
+    -- Receive sequence 3
     for i in 1 to 5 loop
         case i is
           when 1 =>  Expected := (X"70");
@@ -191,6 +178,19 @@ begin
           when 3 =>  Expected := (X"72");
           when 4 =>  Expected := (X"73");
           when 5 =>  Expected := (X"74");
+        end case ;
+    Get(SpiPeripheralRec, Received);
+    AffirmIfEqual(SpiPeripheralID, Received, Expected);
+    end loop;
+
+    -- Receive sequence 4
+    for i in 1 to 5 loop
+        case i is
+          when 1 =>  Expected := (X"80");
+          when 2 =>  Expected := (X"81");
+          when 3 =>  Expected := (X"82");
+          when 4 =>  Expected := (X"83");
+          when 5 =>  Expected := (X"84");
         end case ;
     Get(SpiPeripheralRec, Received);
     AffirmIfEqual(SpiPeripheralID, Received, Expected);
@@ -211,7 +211,7 @@ begin
 
     GetTransactionCount(SpiPeripheralRec, TransactionCount);
     AffirmIfEqual(SpiPeripheralId, TransactionCount, "Transaction Count");
-    */
+    
     -- Test Done
     WaitForBarrier(TestDone);
     wait;
