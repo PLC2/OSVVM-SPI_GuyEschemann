@@ -199,7 +199,9 @@ begin
         ControllerTxLoop : loop
             -- Idle Condition
             if Empty(TransmitFifo) then
+                PICO <= '0';
                 CSEL <= '1';
+                TxData := (others => '0');
                 WaitForToggle(TransmitRequestCount);
             else
                 -- Allow TransmitRequestCount to settle
@@ -232,10 +234,10 @@ begin
                 PICO <= TxData(BitIdx) when OptSpiMode = 1 or OptSpiMode = 3;
             end loop;
 
-            PICO <= '0';
             wait until SpiClk /= CPOL and SpiClk'event;
             Increment(TransmitDoneCount);
             CSEL <= '1';
+            PICO <= '0';
 
         end loop ControllerTxLoop;
     end process SpiTxHandler;
