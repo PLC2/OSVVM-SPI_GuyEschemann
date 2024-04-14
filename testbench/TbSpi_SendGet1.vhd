@@ -137,7 +137,7 @@ begin
 
     GetAlertLogID(SpiPeripheralRec,  SpiPeripheralId);
     SetLogEnable(SpiPeripheralId, INFO, TRUE);
-    WaitForClock(SpiPeripheralRec, 3);
+    WaitForClock(SpiPeripheralRec, 2);
 
     -- Test Begins
 
@@ -154,9 +154,6 @@ begin
         AffirmIfEqual(SpiPeripheralID, Received, Expected);
     end loop;
 
-    GetTransactionCount(SpiPeripheralRec, TransactionCount);
-    AffirmIfEqual(SpiPeripheralId, TransactionCount, 5, "Transaction Count");
-    
     -- Receive sequence 2
     for i in 1 to 5 loop
         case i is

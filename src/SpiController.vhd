@@ -236,7 +236,6 @@ begin
             wait until SpiClk /= CPOL and SpiClk'event;
             Increment(TransmitDoneCount);
             CSEL <= '1';
-                wait until SpiClk'event;
 
         end loop ControllerTxLoop;
     end process SpiTxHandler;

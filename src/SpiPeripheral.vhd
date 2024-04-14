@@ -211,9 +211,9 @@ begin
             SetSpiParams(OptSpiMode, CPOL, CPHA);
 
             -- Clock in bits while CSEL low
-            while CSEL = '0' and BitCnt < RxData'length - 1 loop
+            while CSEL = '0' and BitCnt <= RxData'length - 1 loop
                 if OptSpiMode = 0 or OptSpiMode = 3 then
-                    wait until falling_edge(SCLK);
+                    wait until rising_edge(SCLK);
                 else
                     wait until falling_edge(SCLK);
                 end if;
