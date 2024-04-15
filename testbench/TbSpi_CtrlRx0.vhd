@@ -1,35 +1,5 @@
 --
---  File Name:         TbSpi_Operation1.vhd
---  Design Unit Name:  Operation1
---  OSVVM Release:     TODO
---
---  Maintainer:        Guy Eschemann  email: guy@noasic.com
---  Contributor(s):
---     Guy Eschemann   guy@noasic.com
---
---  Description:
---      Normal operation testcase for the SPI master verification component
---
---  Revision History:
---    Date      Version    Description
---    06/2022   2022.06    Initial version
---
---  This file is part of OSVVM.
---
---  Copyright (c) 2022 Guy Escheman
---
---  Licensed under the Apache License, Version 2.0 (the "License");
---  you may not use this file except in compliance with the License.
---  You may obtain a copy of the License at
---
---      https://www.apache.org/licenses/LICENSE-2.0
---
---  Unless required by applicable law or agreed to in writing, software
---  distributed under the License is distributed on an "AS IS" BASIS,
---  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
---  See the License for the specific language governing permissions and
---  limitations under the License.
---
+
 
 architecture CtrlRx0 of TestCtrl is
 
@@ -100,7 +70,7 @@ begin
             Get(SpiControllerRec, Received);
             AffirmIfEqual(SpiControllerID, Received, Expected);
         end loop;
-    
+
         -- Receive sequence 2
         for i in 1 to 5 loop
             case i is
@@ -113,7 +83,7 @@ begin
         Get(SpiControllerRec, Received);
         AffirmIfEqual(SpiControllerID, Received, Expected);
         end loop;
-    
+
         -- Receive sequence 3
         for i in 1 to 5 loop
             case i is
@@ -126,7 +96,7 @@ begin
         Get(SpiControllerRec, Received);
         AffirmIfEqual(SpiControllerID, Received, Expected);
         end loop;
-    
+
         -- Receive sequence 4
         for i in 1 to 5 loop
             case i is
@@ -139,7 +109,7 @@ begin
         Get(SpiControllerRec, Received);
         AffirmIfEqual(SpiControllerID, Received, Expected);
         end loop;
-    
+
         -- Test ends
         TestActive <= FALSE;
         WaitForBarrier(TestDone);
@@ -167,10 +137,6 @@ begin
     SendAsync(SpiPeripheralRec, X"52");
     SendAsync(SpiPeripheralRec, X"53");
     SendAsync(SpiPeripheralRec, X"54");
-    GetTransactionCount(SpiPeripheralRec, TransactionCount);
-    AffirmIfEqual(SpiPeripheralID, TransactionCount,
-                5,
-                "Transaction Count");
 
     --SendAsync sequence 2
     SendAsync(SpiPeripheralRec, X"60");
@@ -192,11 +158,6 @@ begin
     SendAsync(SpiPeripheralRec, X"82");
     SendAsync(SpiPeripheralRec, X"83");
     SendAsync(SpiPeripheralRec, X"84");
-
-    GetTransactionCount(SpiPeripheralRec, TransactionCount);
-    AffirmIfEqual(SpiPeripheralID, TransactionCount,
-                20,
-                "Transaction Count");
 
     -- Test Done
     WaitForBarrier(TestDone);

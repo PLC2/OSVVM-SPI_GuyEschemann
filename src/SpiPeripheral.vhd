@@ -241,7 +241,6 @@ begin
         wait for 0 ns;
 
         PeripheralTxLoop : loop
-            POCI <= '0';
             wait until CSEL = '0';
             if not Empty(TransmitFifo) then
                 TxData := Pop(TransmitFifo);

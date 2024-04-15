@@ -126,7 +126,7 @@ begin
                     Increment(TransmitRequestCount);
                     wait for 0 ns; -- Ensure increment
                     wait until TransmitRequestCount = TransmitDoneCount;
-                    
+
                 when SEND_ASYNC =>
                     Log(ModelID, "SEND_ASYNC", DEBUG);
                     --
