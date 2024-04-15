@@ -242,24 +242,37 @@ begin
         end loop ControllerTxLoop;
     end process SpiTxHandler;
     ----------------------------------------------------------------------------
-    -- SPI Controller Receive Functionality
+    -- SPI Controller Receive Functionality (Copied from working periph vc)
     ----------------------------------------------------------------------------
-    /*SpiRxHandler : process
-        variable RxData : std_logic_vector(7 downto 0);
+    SpiRxHandler : process
+        variable RxData : std_logic_vector(7 downto 0) := (others => '0');
+        variable BitCnt : integer;
 
     begin
         wait for 0 ns;
-        wait until falling_edge(CSEL);
-        -- Shift in POCI data on SCLK edge per SPI Mode
-        while CSEL = '0' loop
-            if InOnRise then
-                wait until rising_edge(SCLK);
-            else
-                wait until falling_edge(SCLK);
+
+        ControllerRxLoop : loop
+            BitCnt := 0;
+            RxData := (others => '0');
+            wait until falling_edge(CSEL);
+
+            -- Clock in bits while CSEL low
+            while CSEL = '0' and BitCnt <= RxData'length - 1 loop
+                if OptSpiMode = 0 or OptSpiMode = 3 then
+                    wait until rising_edge(SCLK);
+                else
+                    wait until falling_edge(SCLK);
+                end if;
+                RxData := RxData(RxData'high - 1 downto RxData'low) &
+                POCI;
+                BitCnt := BitCnt + 1; -- Counter feels lazy but *shrug*
+            end loop;
+
+            if RxData /= X"0" then
+                Push(ReceiveFifo, RxData);
+                Increment(ReceiveCount);
             end if;
-            RxData := RxData(RxData'high - 1 downto RxData'low) & POCI;
-        end loop;
-        Push(ReceiveFifo, RxData);
-        Increment(ReceiveCount);
-    end process SpiRxHandler;*/
+        end loop ControllerRxLoop;
+
+    end process SpiRxHandler;
 end architecture model;

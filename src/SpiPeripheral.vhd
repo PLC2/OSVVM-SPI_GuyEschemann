@@ -233,29 +233,32 @@ begin
     ----------------------------------------------------------------------------
     -- SPI Peripheral Transmit Functionality
     ----------------------------------------------------------------------------
-    /*SpiTxHandler : process
+    SpiTxHandler : process
         variable TxData : std_logic_vector(7 downto 0);
         variable BitIdx : integer;
 
     begin
         wait for 0 ns;
-        wait until CSEL = '0';
-        if not Empty(TransmitFifo) then
-            TxData := Pop(TransmitFifo);
-        else
-            TxData := (others => '0');
-        end if;
 
-        BitIdx := TxData'length - 1;
-
-        while CSEL = '0' and BitIdx >= 0 loop
-            if OutOnRise then
-                wait until rising_edge(SCLK);
+        PeripheralTxLoop : loop
+            wait until CSEL = '0';
+            if not Empty(TransmitFifo) then
+                TxData := Pop(TransmitFifo);
             else
-                wait until falling_edge(SCLK);
+                TxData := (others => '0');
             end if;
-            POCI   <= TxData(BitIdx);
-            BitIdx := BitIdx - 1;
-        end loop;
-    end process SpiTxHandler;*/
+
+            BitIdx := TxData'length - 1;
+
+            while CSEL = '0' and BitIdx >= 0 loop
+                if OptSpiMode = 1 or OptSpiMode = 2 then
+                    wait until rising_edge(SCLK);
+                else
+                    wait until falling_edge(SCLK);
+                end if;
+                POCI   <= TxData(BitIdx);
+                BitIdx := BitIdx - 1;
+            end loop;
+        end loop PeripheralTxLoop;
+    end process SpiTxHandler;
 end architecture model;

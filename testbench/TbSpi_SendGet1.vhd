@@ -87,13 +87,14 @@ begin
         SetSpiMode(SpiControllerRec, 1);
         --Send sequence 1
         Send(SpiControllerRec, X"50");
+        Send(SpiControllerRec, X"50");
         Send(SpiControllerRec, X"51");
         Send(SpiControllerRec, X"52");
         Send(SpiControllerRec, X"53");
         Send(SpiControllerRec, X"54");
         GetTransactionCount(SpiControllerRec, TransactionCount);
         AffirmIfEqual(SpiControllerID, TransactionCount,
-                      5,
+                      6,
                       "Transaction Count");
 
         --Send sequence 2
@@ -119,7 +120,7 @@ begin
 
         GetTransactionCount(SpiControllerRec, TransactionCount);
         AffirmIfEqual(SpiControllerID, TransactionCount,
-                      20,
+                      21,
                       "Transaction Count");
 
         -- Test ends
@@ -146,13 +147,14 @@ begin
     -- Test Begins
     SetSpiMode(SpiPeripheralRec, 1);
     -- Receive sequence 1
-    for i in 1 to 5 loop
+    for i in 1 to 6 loop
         case i is
-        when 1 =>  Expected := (X"50");
-        when 2 =>  Expected := (X"51");
-        when 3 =>  Expected := (X"52");
-        when 4 =>  Expected := (X"53");
-        when 5 =>  Expected := (X"54");
+        when 1 =>  Expected := (X"B0"); -- First TX invalid after mode change
+        when 2 =>  Expected := (X"50");
+        when 3 =>  Expected := (X"51");
+        when 4 =>  Expected := (X"52");
+        when 5 =>  Expected := (X"53");
+        when 6 =>  Expected := (X"54");
         end case ;
         Get(SpiPeripheralRec, Received);
         AffirmIfEqual(SpiPeripheralID, Received, Expected);
