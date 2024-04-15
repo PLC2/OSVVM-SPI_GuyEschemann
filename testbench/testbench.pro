@@ -5,4 +5,4 @@ analyze  TestCtrl_e.vhd
 analyze  TbSpi.vhd
 
 SetSaveWaves
-RunTest  TbSpi_SendGet2.vhd
+RunTest  TbSpi_CtrlRx0.vhd

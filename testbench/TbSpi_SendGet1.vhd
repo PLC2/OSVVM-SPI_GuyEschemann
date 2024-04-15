@@ -199,17 +199,6 @@ begin
     AffirmIfEqual(SpiPeripheralID, Received, Expected);
     end loop;
 
-    -- Receive sequence 5
-    for i in 1 to 5 loop
-        case i is
-        when 1 =>  Expected := (X"80");
-        when 2 =>  Expected := (X"81");
-        when 3 =>  Expected := (X"82");
-        when 4 =>  Expected := (X"83");
-        when 5 =>  Expected := (X"84");
-        end case ;
-    end loop;
-
     -- Test Done
     WaitForBarrier(TestDone);
     wait;

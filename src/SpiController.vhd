@@ -103,6 +103,7 @@ begin
         alias Operation        : StreamOperationType is TransRec.Operation;
         variable WaitEdges     : integer;
         variable TxData        : std_logic_vector(7 downto 0);
+        variable RxData        : std_logic_vector(7 downto 0);
 
     begin
         -- Wait for ModelID to get set
@@ -125,6 +126,25 @@ begin
                     Increment(TransmitRequestCount);
                     wait for 0 ns; -- Ensure increment
                     wait until TransmitRequestCount = TransmitDoneCount;
+                    
+                when SEND_ASYNC =>
+                    Log(ModelID, "SEND_ASYNC", DEBUG);
+                    --
+                    TxData := SafeResize(TransRec.DataToModel, TxData'length);
+                    Push(TransmitFifo, TxData);
+                    Increment(TransmitRequestCount);
+
+                when GET =>
+                    Log(ModelID, "GET", DEBUG);
+                    --
+                    if Empty(ReceiveFifo) then
+                        WaitForToggle(ReceiveCount);
+                    end if;
+                    RxData := Pop(ReceiveFifo);
+                    TransRec.DataFromModel <= SafeResize(RxData,
+                                                        TransRec.DataFromModel'
+                                                        length
+                                                        );
 
                 when WAIT_FOR_TRANSACTION =>
                     Log(ModelID, "WAIT_FOR_TRANSACTION", DEBUG);
