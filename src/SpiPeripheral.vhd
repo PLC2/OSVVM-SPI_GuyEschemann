@@ -241,6 +241,7 @@ begin
         wait for 0 ns;
 
         PeripheralTxLoop : loop
+            POCI <= '0';
             wait until CSEL = '0';
             if not Empty(TransmitFifo) then
                 TxData := Pop(TransmitFifo);
@@ -251,12 +252,15 @@ begin
             BitIdx := TxData'length - 1;
 
             while CSEL = '0' and BitIdx >= 0 loop
-                if OptSpiMode = 1 or OptSpiMode = 2 then
-                    wait until rising_edge(SCLK);
-                else
+                POCI <= TxData(BitIdx) when OptSpiMode = 0 or OptSpiMode = 2;
+
+                if OptSpiMode = 0 or OptSpiMode = 3 then
                     wait until falling_edge(SCLK);
+                else
+                    wait until rising_edge(SCLK);
                 end if;
-                POCI   <= TxData(BitIdx);
+
+                POCI <= TxData(BitIdx) when OptSpiMode = 1 or OptSpiMode = 3;
                 BitIdx := BitIdx - 1;
             end loop;
         end loop PeripheralTxLoop;

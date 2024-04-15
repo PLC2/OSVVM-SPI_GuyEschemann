@@ -288,10 +288,11 @@ begin
                 BitCnt := BitCnt + 1; -- Counter feels lazy but *shrug*
             end loop;
 
-            if RxData /= X"0" then
+            if RxData /= X"00" then
                 Push(ReceiveFifo, RxData);
                 Increment(ReceiveCount);
             end if;
+
         end loop ControllerRxLoop;
 
     end process SpiRxHandler;

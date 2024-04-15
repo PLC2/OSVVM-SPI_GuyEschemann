@@ -82,7 +82,7 @@ begin
         -- Enable logging for SPI Controller and Peripheral
         GetAlertLogID(SpiControllerRec, SpiControllerID);
         SetLogEnable(SpiControllerID, INFO, TRUE);
-        WaitForClock(SpiControllerRec, 2);
+        WaitForClock(SpiControllerRec, 3);
 
         -- Test Begins
         for idx in 21 downto 0 loop
