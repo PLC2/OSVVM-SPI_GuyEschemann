@@ -52,7 +52,7 @@ begin
     begin
         -- Enable logging for SPI Controller and Peripheral
         GetAlertLogID(SpiControllerRec, SpiControllerID);
-        SetLogEnable(SpiControllerID, DEBUG, TRUE);
+        SetLogEnable(SpiControllerID, INFO, TRUE);
         WaitForClock(SpiControllerRec, 3);
 
         -- Test Begins
@@ -132,7 +132,7 @@ begin
     WaitForClock(SpiPeripheralRec, 2);
 
     -- Test Begins
-    SetSpiMode(SpiControllerRec, 3);
+    SetSpiMode(SpiPeripheralRec, 3);
     --SendAsync sequence 1
     SendAsync(SpiPeripheralRec, X"50");
     SendAsync(SpiPeripheralRec, X"51");

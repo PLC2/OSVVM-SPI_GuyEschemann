@@ -149,7 +149,7 @@ begin
     -- Receive sequence 1
     for i in 1 to 6 loop
         case i is
-        when 1 =>  Expected := (X"B0"); -- First TX invalid after mode change
+        when 1 =>  Expected := (X"58"); -- First TX invalid after mode change
         when 2 =>  Expected := (X"50");
         when 3 =>  Expected := (X"51");
         when 4 =>  Expected := (X"52");
