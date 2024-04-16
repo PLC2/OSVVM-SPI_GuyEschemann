@@ -1,14 +1,12 @@
 --
 --  File Name:         SpiController.vhd
---  Design Unit Name:  SPI
+--  Design Unit Name:  SpiController
 --  OSVVM Release:     TODO
 --
---  Maintainer:        Guy Eschemann  email: guy@noasic.com
---  Contributor(s):
---     Guy Eschemann   guy@noasic.com
---
 --  Description:
---      SPI Controller Verification Component
+--      A package containing SPI Controller verification component
+--      behavioral model.
+--
 
 library ieee;
     use ieee.std_logic_1164.all;

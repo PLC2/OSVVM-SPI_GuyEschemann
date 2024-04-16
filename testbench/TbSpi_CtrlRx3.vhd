@@ -1,6 +1,12 @@
--- SPI mode 3 just hangs and quits without tx
--- seems to hang on zero get
-
+--
+--  File Name:         TbSpi_CtrlRx3.vhd
+--  Design Unit Name:  CtrlRx3
+--  OSVVM Release:     TODO
+--
+--  Description:
+--      SPI Mode 3 Test: Controller sends 0s. Peripheral sends data to
+--      Controller. Controller receives data and checks against expected values.
+--
 
 architecture CtrlRx3 of TestCtrl is
 

@@ -1,14 +1,12 @@
 --
---  File Name:         SpiPeripheral.vhd
---  Design Unit Name:  SPI
+--  File Name:         SpiPerpiperal.vhd
+--  Design Unit Name:  SpiPeripheral
 --  OSVVM Release:     TODO
 --
---  Maintainer:        Guy Eschemann  email: guy@noasic.com
---  Contributor(s):
---     Guy Eschemann   guy@noasic.com
---
 --  Description:
---      SPI Controller Verification Component
+--      A package containing SPI Peripheral verification component
+--      behavioral model.
+--
 
 library ieee;
     use ieee.std_logic_1164.all;

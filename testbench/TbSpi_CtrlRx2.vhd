@@ -1,4 +1,11 @@
--- SPI Mode 2 works ok :)
+--
+--  File Name:         TbSpi_CtrlRx2.vhd
+--  Design Unit Name:  CtrlRx2
+--  OSVVM Release:     TODO
+--
+--  Description:
+--      SPI Mode 2 Test: Controller sends 0s. Peripheral sends data to
+--      Controller. Controller receives data and checks against expected values.
 --
 
 architecture CtrlRx2 of TestCtrl is

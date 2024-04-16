@@ -1,5 +1,12 @@
 --
-
+--  File Name:         TbSpi_CtrlRx0.vhd
+--  Design Unit Name:  CtrlRx0
+--  OSVVM Release:     TODO
+--
+--  Description:
+--      SPI Mode 0 Test: Controller sends 0s. Peripheral sends data to
+--      Controller. Controller receives data and checks against expected values.
+--
 
 architecture CtrlRx0 of TestCtrl is
 

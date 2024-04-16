@@ -1,4 +1,13 @@
--- Spi mode 1 works now too 
+--
+--  File Name:         TbSpi_CtrlRx1.vhd
+--  Design Unit Name:  CtrlRx1
+--  OSVVM Release:     TODO
+--
+--  Description:
+--      SPI Mode 1 Test: Controller sends 0s. Peripheral sends data to
+--      Controller. Controller receives data and checks against expected values.
+--
+
 architecture CtrlRx1 of TestCtrl is
 
     signal TestDone   : integer_barrier := 1;

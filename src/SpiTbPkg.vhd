@@ -1,3 +1,13 @@
+--
+--  File Name:         SpiTbPkg.vhd
+--  Design Unit Name:  SpiTbPkg
+--  OSVVM Release:     TODO
+--
+--  Description:
+--      A package containing SPI Controller and Peripheral verification
+--      components' associated types, procedures, and functions.
+--
+
 library ieee;
     use ieee.std_logic_1164.all;
     use ieee.numeric_std.all;
