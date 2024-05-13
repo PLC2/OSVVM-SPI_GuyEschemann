@@ -93,8 +93,8 @@ package SpiTbPkg is
     ----------------------------------------------------------------------------
     -- SPI Parameter Helpers
     ----------------------------------------------------------------------------
-    pure function GetCPOL      (SpiMode : in SpiModeType) return std_logic;
-    pure function GetCPHA      (SpiMode : in SpiModeType) return std_logic;
+    function GetCPOL      (SpiMode : in SpiModeType) return std_logic;
+    function GetCPHA      (SpiMode : in SpiModeType) return std_logic;
 
 end SpiTbPkg;
 
@@ -151,7 +151,7 @@ package body SpiTbPkg is
     ----------------------------------------------------------------------------
     -- GetCPHA: Helper function for SetSpiMode returns CPHA value
     ----------------------------------------------------------------------------
-    pure function GetCPHA(SpiMode : in SpiModeType) return std_logic is
+    function GetCPHA(SpiMode : in SpiModeType) return std_logic is
         variable retval : std_logic := '0';
     begin
         retval := '1' when SpiMode = 1 or SpiMode = 3;
