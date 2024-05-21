@@ -1,11 +1,34 @@
 --
 --  File Name:         TbSpi_CtrlRx0.vhd
 --  Design Unit Name:  CtrlRx0
---  OSVVM Release:     TODO
+--
+--  Maintainer:        OSVVM Authors
+--  Contributor(s):
+--     Jacob Albers
 --
 --  Description:
 --      SPI Mode 0 Test: Controller sends 0s. Peripheral sends data to
 --      Controller. Controller receives data and checks against expected values.
+--
+--  Revision History:
+--    Date      Version    Description
+--    04/2024   2024.04    Initial version
+--
+--  This file is part of OSVVM.
+--
+--  Copyright (c) 2024 OSVVM Authors
+--
+--  Licensed under the Apache License, Version 2.0 (the "License");
+--  you may not use this file except in compliance with the License.
+--  You may obtain a copy of the License at
+--
+--      https://www.apache.org/licenses/LICENSE-2.0
+--
+--  Unless required by applicable law or agreed to in writing, software
+--  distributed under the License is distributed on an "AS IS" BASIS,
+--  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+--  See the License for the specific language governing permissions and
+--  limitations under the License.
 --
 
 architecture CtrlRx0 of TestCtrl is
