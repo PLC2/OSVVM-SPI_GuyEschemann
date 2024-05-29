@@ -15,7 +15,9 @@
 --    03/2024   2024.03    Updated SafeResize to use ModelID
 --    06/2022   2022.06    Initial version
 --
---  Derived from SPI.vhd Copyright (c) 2022 Guy Escheman 
+--  This file is part of OSVVM.
+--
+--  Derived from SPI.vhd Copyright (c) 2022 Guy Eschemann 
 --  Copyright (c) 2024 OSVVM Authors
 --
 --  Licensed under the Apache License, Version 2.0 (the "License");

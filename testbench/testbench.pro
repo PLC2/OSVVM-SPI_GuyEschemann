@@ -1,13 +1,14 @@
 #
-#  File Name:         testbench.vhd
+#  File Name:         testbench.pro
 #  Design Unit Name:  testbench
 #
 #  Maintainer:        OSVVM Authors
 #  Contributor(s):
 #     Guy Eschemann   (original Author)
+#     Jacob Albers
 #
 #  Description:
-#    Setting up local paths for testbenches
+#    Run testbenches for SPI
 #
 #  Revision History:
 #    Date      Version    Description
@@ -16,6 +17,7 @@
 #  This file is part of OSVVM.
 #
 #  Copyright (c) 2022 Guy Escheman
+#  Copyright (c) 2024 OSVVM Authors
 #
 #  Licensed under the Apache License, Version 2.0 (the "License");
 #  you may not use this file except in compliance with the License.

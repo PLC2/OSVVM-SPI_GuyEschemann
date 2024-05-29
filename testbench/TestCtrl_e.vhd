@@ -5,6 +5,7 @@
 --  Maintainer:        OSVVM Authors
 --  Contributor(s):
 --     Guy Eschemann   (original Author)
+--     Jacob Albers
 --
 --  Description:
 --    Test Sequencer for SPI testbench that tests SPI VC.
@@ -13,7 +14,10 @@
 --    Date      Version    Description
 --    06/2022   2022.06    Initial version
 --
+--  This file is part of OSVVM.
+--
 --  Copyright (c) 2022 Guy Escheman
+--  Copyright (c) 2024 OSVVM Authors
 --
 --  Licensed under the Apache License, Version 2.0 (the "License");
 --  you may not use this file except in compliance with the License.
