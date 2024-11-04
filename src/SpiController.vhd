@@ -6,12 +6,14 @@
 --  Contributor(s):
 --     Guy Eschemann   (original Author of SPI.vhd)
 --     Jacob Albers
+--     fernandoka
 --
 --  Description:
 --      SPI Controller Verification Component
 --
 --  Revision History:
 --    Date      Version    Description
+--    11/2024   2024.03    Addition of Burst Mode for SPI byte transactions
 --    03/2024   2024.03    Updated SafeResize to use ModelID
 --    06/2022   2022.06    Initial version
 --
@@ -92,6 +94,7 @@ architecture model of SpiController is
     signal OptSpiMode           : SpiModeType          := SPI_MODE;
     signal CPOL                 : std_logic            := '0';
     signal CPHA                 : std_logic            := '0';
+    signal SpiBurstModeEna      : boolean              :=  false;
     -- SPI Clock Signals
     signal SpiClk               : std_logic            := '0';
     signal OptSclkPeriod        : SpiClkType           :=  SCLK_PERIOD;
@@ -209,6 +212,13 @@ begin
                             to_string(TransRec.IntToModel),
                             INFO);
 
+                        when SpiOptionType'pos(SET_SPI_BURST_MODE) =>
+                        SpiBurstModeEna <= TransRec.BoolToModel;
+                        -- Log SPI mode change
+                        Log(ModelID, "Set SPI Burst Mode = " &
+                            to_string(TransRec.BoolToModel),
+                            INFO);
+
                         when others =>
                             Alert(ModelID, OPT_ERR_MSG &
                                   to_string(SpiOptionType'val(TransRec.Options)),
@@ -235,6 +245,7 @@ begin
 
     SpiTxHandler : process
         variable TxData      : std_logic_vector(7 downto 0);
+        variable BurstEna    : boolean := false;
 
     begin
         wait for 0 ns;
@@ -259,10 +270,13 @@ begin
 
             -- SPI Mode: Propogate any SPI Mode changes
             SetSpiParams(OptSpiMode, CPOL, CPHA);
+            BurstEna := SpiBurstModeEna;
 
             -- SCLK: Wait for correct SpiClk phase before engaging CSEL
-            wait until SpiClk = CPOL and SpiClk'event;
-            CSEL <= '0';
+            if CSEL='1' then
+              wait until SpiClk = CPOL and SpiClk'event;
+              CSEL <= '0';
+            end if;
 
             -- Transmit TxData byte bit by bit
             for BitIdx in 7 downto 0 loop
@@ -275,12 +289,19 @@ begin
                 end if;
 
                 PICO <= TxData(BitIdx) when OptSpiMode = 1 or OptSpiMode = 3;
+
+                Log(ModelID, "Loop: SPI Controller TxData: " & to_string(TxData) &
+                    ", PICO # " & to_string(TxData(BitIdx)) &
+                    ", BitIdx # " & to_string(BitIdx),
+                    DEBUG);
             end loop;
 
-            wait until SpiClk /= CPOL and SpiClk'event;
             Increment(TransmitDoneCount);
-            CSEL <= '1';
-            PICO <= '0';
+            if not BurstEna or ((TransmitDoneCount+1)=TransmitRequestCount) then
+              wait until SpiClk /= CPOL and SpiClk'event;
+              CSEL <= '1';
+              PICO <= '0';
+            end if;
 
         end loop ControllerTxLoop;
     end process SpiTxHandler;

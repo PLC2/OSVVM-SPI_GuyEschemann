@@ -6,12 +6,14 @@
 #  Contributor(s):
 #     Guy Eschemann   (original Author)
 #     Jacob Albers
+#     fernandoka
 #
 #  Description:
 #    Run testbenches for SPI
 #
 #  Revision History:
 #    Date      Version    Description
+#    11/2024   2024.03    Addition of Burst Mode for SPI byte transactions
 #    06/2022   2022.06    Initial version
 #
 #  This file is part of OSVVM.
@@ -37,11 +39,16 @@ analyze  OsvvmTestCommonPkg.vhd
 analyze  TestCtrl_e.vhd
 analyze  TbSpi.vhd
 
-SetSaveWaves
+
 RunTest  TbSpi_SendGet0.vhd
 RunTest  TbSpi_SendGet1.vhd
 RunTest  TbSpi_SendGet2.vhd
 RunTest  TbSpi_SendGet3.vhd
+
+RunTest  TbSpi_BurstSendGet0.vhd
+RunTest  TbSpi_BurstSendGet1.vhd
+RunTest  TbSpi_BurstSendGet2.vhd
+RunTest  TbSpi_BurstSendGet3.vhd
 
 RunTest  TbSpi_CtrlRx0.vhd
 RunTest  TbSpi_CtrlRx1.vhd
