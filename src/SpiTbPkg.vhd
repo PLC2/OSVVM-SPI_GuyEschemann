@@ -6,12 +6,14 @@
 --  Contributor(s):
 --     Guy Eschemann   (original Author)
 --     Jacob Albers
+--     fernandoka
 --
 --  Description:
 --      Constant and Transaction Support for OSVVM SPI VC
 --
 --  Revision History:
 --    Date      Version    Description
+--    11/2024   2024.03    Addition of Burst Mode for SPI byte transactions
 --    04/2024   2024.04    Initial version
 --    06/2022   2022.06    Initial version
 --
@@ -79,7 +81,8 @@ package SpiTbPkg is
     ----------------------------------------------------------------------------
     type SpiOptionType is (
         SET_SCLK_PERIOD,
-        SET_SPI_MODE
+        SET_SPI_MODE,
+        SET_SPI_BURST_MODE
     );
 
     ----------------------------------------------------------------------------
@@ -114,6 +117,11 @@ package SpiTbPkg is
         signal OptSpiMode     : in  SpiModeType;
         signal CPOL           : out std_logic;
         signal CPHA           : out std_logic
+    );
+
+    procedure SetSpiBurstMode(
+        signal   TransactionRec  : inout StreamRecType;
+        constant SpiBurstModeEna : boolean
     );
 
     ----------------------------------------------------------------------------
@@ -163,6 +171,19 @@ package body SpiTbPkg is
         CPOL      <= GetCPOL(OptSpiMode);
         CPHA      <= GetCPHA(OptSpiMode);
     end procedure SetSpiParams;
+
+    ----------------------------------------------------------------------------
+    -- SetSpiBurstMode: Sets SPI device byte transaction characteristics
+    ----------------------------------------------------------------------------
+    procedure SetSpiBurstMode(
+        signal   TransactionRec  : inout StreamRecType;
+        constant SpiBurstModeEna : boolean
+    ) is
+    begin
+        SetModelOptions(TransactionRec,
+                        SpiOptionType'pos(SET_SPI_BURST_MODE),
+                        SpiBurstModeEna);
+    end procedure SetSpiBurstMode;
 
     ----------------------------------------------------------------------------
     -- GetCPOL: Helper function for SetSpiMode returns CPOL value

@@ -1,6 +1,6 @@
 --
---  File Name:         TbSpi_SendGet3.vhd
---  Design Unit Name:  SendGet3
+--  File Name:         TbSpi_BurstSendGet1.vhd
+--  Design Unit Name:  BurstSendGet1
 --
 --  Maintainer:        OSVVM Authors
 --  Contributor(s):
@@ -8,7 +8,7 @@
 --     fernandoka
 --
 --  Description:
---      SPI Mode 3 Test: Controller sends data. Peripheral receives data
+--      SPI Mode 1 Test: Controller sends data. Peripheral receives data
 --      and checks against expected value.
 --
 --  Revision History:
@@ -32,7 +32,7 @@
 --  limitations under the License.
 --
 
-architecture SendGet3 of TestCtrl is
+architecture BurstSendGet1 of TestCtrl is
 
     signal TestDone   : integer_barrier := 1;
     signal TestActive : boolean         := TRUE;
@@ -46,13 +46,13 @@ begin
     ControlProc : process
     begin
         -- Initialization of test
-        SetTestName("TbSpi_SendGet3");
+        SetTestName("TbSpi_BurstSendGet1");
         SetLogEnable(PASSED, TRUE);
         TbID <= GetAlertLogID("TB");
 
         -- Wait for testbench initialization
         wait for 0 ns; wait for 0 ns;
-        TranscriptOpen(OSVVM_RESULTS_DIR & "TbSpi_SendGet3.txt");
+        TranscriptOpen(OSVVM_RESULTS_DIR & "TbSpi_BurstSendGet1.txt");
         SetTranscriptMirror(TRUE) ;
 
         -- Wait for Design Reset
@@ -85,46 +85,48 @@ begin
         WaitForClock(SpiControllerRec, 2);
 
         -- Test Begins
-        SetSpiMode(SpiControllerRec, 3);
+        SetSpiMode(SpiControllerRec, 1);
+        SetSpiBurstMode(SpiControllerRec, True);
+        
         --Send sequence 1
-        Send(SpiControllerRec, X"50");
-        Send(SpiControllerRec, X"51");
-        Send(SpiControllerRec, X"52");
-        Send(SpiControllerRec, X"53");
-        Send(SpiControllerRec, X"54");
-        GetTransactionCount(SpiControllerRec, TransactionCount);
-        AffirmIfEqual(SpiControllerID, TransactionCount,
-                      5,
-                      "Transaction Count");
+        SendAsync(SpiControllerRec, X"50");
+        SendAsync(SpiControllerRec, X"50");
+        SendAsync(SpiControllerRec, X"51");
+        SendAsync(SpiControllerRec, X"52");
+        SendAsync(SpiControllerRec, X"53");
+        SendAsync(SpiControllerRec, X"54");
 
         --Send sequence 2
-        Send(SpiControllerRec, X"60");
-        Send(SpiControllerRec, X"61");
-        Send(SpiControllerRec, X"62");
-        Send(SpiControllerRec, X"63");
-        Send(SpiControllerRec, X"64");
+        SendAsync(SpiControllerRec, X"60");
+        SendAsync(SpiControllerRec, X"61");
+        SendAsync(SpiControllerRec, X"62");
+        SendAsync(SpiControllerRec, X"63");
+        SendAsync(SpiControllerRec, X"64");
 
         --Send sequence 3
-        Send(SpiControllerRec, X"70");
-        Send(SpiControllerRec, X"71");
-        Send(SpiControllerRec, X"72");
-        Send(SpiControllerRec, X"73");
-        Send(SpiControllerRec, X"74");
+        SendAsync(SpiControllerRec, X"70");
+        SendAsync(SpiControllerRec, X"71");
+        SendAsync(SpiControllerRec, X"72");
+        SendAsync(SpiControllerRec, X"73");
+        SendAsync(SpiControllerRec, X"74");
 
         --Send sequence 4
-        Send(SpiControllerRec, X"80");
-        Send(SpiControllerRec, X"81");
-        Send(SpiControllerRec, X"82");
-        Send(SpiControllerRec, X"83");
-        Send(SpiControllerRec, X"84");
+        SendAsync(SpiControllerRec, X"80");
+        SendAsync(SpiControllerRec, X"81");
+        SendAsync(SpiControllerRec, X"82");
+        SendAsync(SpiControllerRec, X"83");
+        SendAsync(SpiControllerRec, X"84");
 
-        GetTransactionCount(SpiControllerRec, TransactionCount);
+        -- Waits until all bytes has been sent
+				while TransactionCount<21 loop
+	        GetTransactionCount(SpiControllerRec, TransactionCount);
+					wait for 1 us;
+				end loop;			
         AffirmIfEqual(SpiControllerID, TransactionCount,
-                      20,
+                      21,
                       "Transaction Count");
 
         -- Test ends
-        TestActive <= FALSE;
         WaitForBarrier(TestDone);
         wait;
     end process SpiControllerTest;
@@ -142,18 +144,19 @@ begin
 
     GetAlertLogID(SpiPeripheralRec,  SpiPeripheralId);
     SetLogEnable(SpiPeripheralId, INFO, TRUE);
+    SetSpiMode(SpiPeripheralRec, 1);
     WaitForClock(SpiPeripheralRec, 2);
 
     -- Test Begins
-    SetSpiMode(SpiPeripheralRec, 3);
     -- Receive sequence 1
-    for i in 1 to 5 loop
+    for i in 1 to 6 loop
         case i is
-        when 1 =>  Expected := (X"50");
-        when 2 =>  Expected := (X"51");
-        when 3 =>  Expected := (X"52");
-        when 4 =>  Expected := (X"53");
-        when 5 =>  Expected := (X"54");
+        when 1 =>  Expected := (X"50"); -- First TX invalid after mode change
+        when 2 =>  Expected := (X"50");
+        when 3 =>  Expected := (X"51");
+        when 4 =>  Expected := (X"52");
+        when 5 =>  Expected := (X"53");
+        when 6 =>  Expected := (X"54");
         end case ;
         Get(SpiPeripheralRec, Received);
         AffirmIfEqual(SpiPeripheralID, Received, Expected);
@@ -198,28 +201,18 @@ begin
     AffirmIfEqual(SpiPeripheralID, Received, Expected);
     end loop;
 
-    -- Receive sequence 5
-    for i in 1 to 5 loop
-        case i is
-        when 1 =>  Expected := (X"80");
-        when 2 =>  Expected := (X"81");
-        when 3 =>  Expected := (X"82");
-        when 4 =>  Expected := (X"83");
-        when 5 =>  Expected := (X"84");
-        end case ;
-    end loop;
-
     -- Test Done
     wait for 1 us;
+    TestActive <= FALSE;
     WaitForBarrier(TestDone);
     wait;
     end process SpiPeripheralTest;
-end SendGet3;
+end BurstSendGet1;
 
-configuration TbSpi_SendGet3 of TbSpi is
+configuration TbSpi_BurstSendGet1 of TbSpi is
     for TestHarness
         for TestCtrl_1 : TestCtrl
-            use entity work.TestCtrl(SendGet3);
+            use entity work.TestCtrl(BurstSendGet1);
         end for;
     end for;
-end TbSpi_SendGet3;
+end TbSpi_BurstSendGet1;

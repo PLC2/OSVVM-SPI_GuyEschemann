@@ -6,12 +6,14 @@
 --  Contributor(s):
 --     Guy Eschemann   (original Author of SPI.vhd)
 --     Jacob Albers
+--     fernandoka
 --
 --  Description:
 --      SPI Peripheral Verification Component
 --
 --  Revision History:
 --    Date      Version    Description
+--    11/2024   2024.03    Addition of Burst Mode for SPI byte transactions
 --    04/2024   2024.04    Initial version
 --
 --  This file is part of OSVVM.
@@ -220,15 +222,19 @@ begin
     -- SPI Peripheral Receive Functionality
     ----------------------------------------------------------------------------
     SpiRxHandler : process
-        variable RxData : std_logic_vector(7 downto 0) := (others => '0');
-        variable BitCnt : integer;
+        variable RxData  : std_logic_vector(7 downto 0) := (others => '0');
+        variable BitCnt  : integer;
+        variable CsIsLow : boolean := false;
 
     begin
         wait for 0 ns;
 
         PeripheralRxLoop : loop
             BitCnt := 0;
-            wait until falling_edge(CSEL);
+            if not CsIsLow then
+              wait until falling_edge(CSEL);
+              CsIsLow := true;
+            end if;
 
             -- SPI Mode: Propogate SPI Mode changes
             SetSpiParams(OptSpiMode, CPOL, CPHA);
@@ -237,18 +243,23 @@ begin
             -- Clock in bits while CSEL low
             while CSEL = '0' and BitCnt <= RxData'length - 1 loop
                 if OptSpiMode = 0 or OptSpiMode = 3 then
-                    wait until rising_edge(SCLK);
+                    wait until rising_edge(SCLK) or rising_edge(CSEL);
                 else
-                    wait until falling_edge(SCLK);
+                    wait until falling_edge(SCLK) or rising_edge(CSEL);
                 end if;
 
-                RxData := RxData(RxData'high - 1 downto RxData'low) &
-                PICO;
-                BitCnt := BitCnt + 1; -- Counter feels lazy but *shrug*
+                CsIsLow := CSEL='0'; -- Update CsIsLow
+                if CsIsLow then
+                  RxData := RxData(RxData'high - 1 downto RxData'low) &
+                  PICO;
+                  BitCnt := BitCnt + 1; -- Counter feels lazy but *shrug*
+                end if;
             end loop;
 
+          if BitCnt=RxData'length then
             Push(ReceiveFifo, RxData);
             Increment(ReceiveCount);
+          end if;
         end loop PeripheralRxLoop;
 
     end process SpiRxHandler;
@@ -257,17 +268,24 @@ begin
     -- SPI Peripheral Transmit Functionality
     ----------------------------------------------------------------------------
     SpiTxHandler : process
-        variable TxData : std_logic_vector(7 downto 0);
-        variable BitIdx : integer;
-
+        variable TxData            : std_logic_vector(7 downto 0);
+        variable BitIdx            : integer;
+        variable CsIsLow           : boolean := false;
+        variable TransmitIsPending : boolean := false;
     begin
         wait for 0 ns;
 
         PeripheralTxLoop : loop
-            wait until CSEL = '0';
-            if not Empty(TransmitFifo) then
+            if not CsIsLow then
+              wait until falling_edge(CSEL);
+              CsIsLow := true;
+            end if;
+
+
+            if not Empty(TransmitFifo) and not TransmitIsPending then
                 TxData := Pop(TransmitFifo);
-            else
+                TransmitIsPending := true;
+            elsif not TransmitIsPending then
                 TxData := (others => '0');
             end if;
 
@@ -277,14 +295,23 @@ begin
                 POCI <= TxData(BitIdx) when OptSpiMode = 0 or OptSpiMode = 2;
 
                 if OptSpiMode = 0 or OptSpiMode = 3 then
-                    wait until falling_edge(SCLK);
+                    wait until falling_edge(SCLK) or rising_edge(CSEL);
                 else
-                    wait until rising_edge(SCLK);
+                    wait until rising_edge(SCLK) or rising_edge(CSEL);
                 end if;
 
-                POCI <= TxData(BitIdx) when OptSpiMode = 1 or OptSpiMode = 3;
-                BitIdx := BitIdx - 1;
+                CsIsLow := CSEL='0'; -- Update CsIsLow
+                if CsIsLow then
+                  POCI <= TxData(BitIdx) when OptSpiMode = 1 or OptSpiMode = 3;
+                  BitIdx := BitIdx - 1;
+                end if;
             end loop;
+
+            if BitIdx<0 then
+              Increment(TransmitDoneCount);
+              TransmitIsPending := false;
+            end if;
+
         end loop PeripheralTxLoop;
     end process SpiTxHandler;
 end architecture model;
