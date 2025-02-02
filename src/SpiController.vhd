@@ -190,7 +190,7 @@ begin
                     end loop;
 
                 when GET_ALERTLOG_ID =>
-                    TransRec.IntFromModel <= ModelID;
+                    TransRec.IntFromModel <= integer(ModelID);
 
                 when GET_TRANSACTION_COUNT =>
                     TransRec.IntFromModel <= TransmitDoneCount;

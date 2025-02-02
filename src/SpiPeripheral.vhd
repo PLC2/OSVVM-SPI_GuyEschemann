@@ -184,7 +184,7 @@ begin
                 when GET_ALERTLOG_ID =>
                     Log(ModelID, "GET_ALERTLOG_ID", DEBUG);
                     --
-                    TransRec.IntFromModel <= ModelID;
+                    TransRec.IntFromModel <= integer(ModelID);
 
                 when GET_TRANSACTION_COUNT =>
                     Log(ModelID, "GET_TRANSACTION_COUNT", DEBUG);
