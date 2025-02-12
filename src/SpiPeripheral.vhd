@@ -155,7 +155,7 @@ begin
                 when GET =>
                     Log(ModelID, "GET", DEBUG);
                     --
-                    if Empty(ReceiveFifo) then
+                    if IsEmpty(ReceiveFifo) then
                         WaitForToggle(ReceiveCount);
                     end if;
                     RxData := Pop(ReceiveFifo);
@@ -167,7 +167,7 @@ begin
                 when WAIT_FOR_TRANSACTION =>
                     Log(ModelID, "WAIT_FOR_TRANSACTION", DEBUG);
                     --
-                    if Empty(ReceiveFifo) then
+                    if IsEmpty(ReceiveFifo) then
                         WaitForToggle(ReceiveCount);
                     end if;
 
@@ -282,7 +282,7 @@ begin
             end if;
 
 
-            if not Empty(TransmitFifo) and not TransmitIsPending then
+            if not IsEmpty(TransmitFifo) and not TransmitIsPending then
                 TxData := Pop(TransmitFifo);
                 TransmitIsPending := true;
             elsif not TransmitIsPending then

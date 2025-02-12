@@ -163,7 +163,7 @@ begin
                 when GET =>
                     Log(ModelID, "GET", DEBUG);
                     --
-                    if Empty(ReceiveFifo) then
+                    if IsEmpty(ReceiveFifo) then
                         WaitForToggle(ReceiveCount);
                     end if;
                     RxData := Pop(ReceiveFifo);
@@ -252,7 +252,7 @@ begin
 
         ControllerTxLoop : loop
             -- Idle Condition
-            if Empty(TransmitFifo) then
+            if IsEmpty(TransmitFifo) then
                 PICO <= '0';
                 CSEL <= '1';
                 TxData := (others => '0');
