@@ -52,7 +52,7 @@ begin
 
         -- Wait for testbench initialization
         wait for 0 ns; wait for 0 ns;
-        TranscriptOpen(OSVVM_RESULTS_DIR & "TbSpi_BurstSendGet2.txt");
+        TranscriptOpen ;
         SetTranscriptMirror(TRUE) ;
 
         -- Wait for Design Reset

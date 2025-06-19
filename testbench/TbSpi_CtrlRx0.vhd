@@ -51,7 +51,7 @@ begin
 
         -- Wait for testbench initialization
         wait for 0 ns; wait for 0 ns;
-        TranscriptOpen(OSVVM_RESULTS_DIR & "TbSpi_CtrlRx0.txt");
+        TranscriptOpen ;
         SetTranscriptMirror(TRUE) ;
 
         -- Wait for Design Reset
